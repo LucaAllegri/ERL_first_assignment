@@ -1,0 +1,644 @@
+<?xml version="1.0"?>
+<!--
+  All the models are referenced with model:// URIs: Gazebo looks for them in the
+  folders listed in GZ_SIM_RESOURCE_PATH (each model is a folder with model.config).
+  Needed folders: table_marble, brick_box_3x1x3, dumpster, Sofa, picking_shelves, pallet_standard
+  (the last two can be copied from the Fuel cache:
+   cp -r ~/.gz/fuel/fuel.gazebosim.org/openrobotics/models/picking_shelves/1 <models>/picking_shelves
+   cp -r ~/.gz/fuel/fuel.gazebosim.org/openrobotics/models/pallet_standard/1 <models>/pallet_standard)
+-->
+<sdf version='1.10'>
+  <world name='empty'>
+    <physics name='1ms' type='ignored'>
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1</real_time_factor>
+      <real_time_update_rate>1000</real_time_update_rate>
+    </physics>
+    <plugin name='gz::sim::systems::Physics' filename='gz-sim-physics-system'/>
+    <plugin name='gz::sim::systems::UserCommands' filename='gz-sim-user-commands-system'/>
+    <plugin name='gz::sim::systems::SceneBroadcaster' filename='gz-sim-scene-broadcaster-system'/>
+    <plugin name='gz::sim::systems::Contact' filename='gz-sim-contact-system'/>
+    <plugin name='gz::sim::systems::Sensors' filename='gz-sim-sensors-system'/>
+    <plugin name='gz::sim::systems::Imu' filename='gz-sim-imu-system'/>
+    <gravity>0 0 -9.8000000000000007</gravity>
+    <magnetic_field>5.5644999999999998e-06 2.2875799999999999e-05 -4.2388400000000002e-05</magnetic_field>
+    <atmosphere type='adiabatic'/>
+    <scene>
+      <ambient>0.400000006 0.400000006 0.400000006 1</ambient>
+      <background>0.699999988 0.699999988 0.699999988 1</background>
+      <shadows>true</shadows>
+    </scene>
+    <model name='ground_plane'>
+      <static>true</static>
+      <link name='link'>
+        <collision name='collision'>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>100 100</size>
+            </plane>
+          </geometry>
+          <surface>
+            <friction>
+              <ode/>
+            </friction>
+            <bounce/>
+            <contact/>
+          </surface>
+        </collision>
+        <visual name='visual'>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>100 100</size>
+            </plane>
+          </geometry>
+          <material>
+            <ambient>0.800000012 0.800000012 0.800000012 1</ambient>
+            <diffuse>0.800000012 0.800000012 0.800000012 1</diffuse>
+            <specular>0.800000012 0.800000012 0.800000012 1</specular>
+          </material>
+        </visual>
+        <pose>0 0 0 0 0 0</pose>
+        <inertial>
+          <pose>0 0 0 0 0 0</pose>
+          <mass>1</mass>
+          <inertia>
+            <ixx>1</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>1</iyy>
+            <iyz>0</iyz>
+            <izz>1</izz>
+          </inertia>
+        </inertial>
+        <enable_wind>false</enable_wind>
+      </link>
+      <pose>0 0 0 0 0 0</pose>
+      <self_collide>false</self_collide>
+    </model>
+    <model name='box'>
+      <pose>1.54006 1.4483699999999999 0.5 1.0048e-21 -2.4640900000000001e-21 -3.9210800000000001e-22</pose>
+      <link name='box_link'>
+        <inertial>
+          <inertia>
+            <ixx>0.16666</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>0.16666</iyy>
+            <iyz>0</iyz>
+            <izz>0.16666</izz>
+          </inertia>
+          <mass>1</mass>
+          <pose>0 0 0 0 0 0</pose>
+        </inertial>
+        <collision name='box_collision'>
+          <geometry>
+            <box>
+              <size>1 1 1</size>
+            </box>
+          </geometry>
+          <surface>
+            <friction>
+              <ode/>
+            </friction>
+            <bounce/>
+            <contact/>
+          </surface>
+        </collision>
+        <visual name='box_visual'>
+          <geometry>
+            <box>
+              <size>1 1 1</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.300000012 0.300000012 0.300000012 1</ambient>
+            <diffuse>0.699999988 0.699999988 0.699999988 1</diffuse>
+            <specular>1 1 1 1</specular>
+          </material>
+        </visual>
+        <pose>0 0 0 0 0 0</pose>
+        <enable_wind>false</enable_wind>
+      </link>
+      <static>false</static>
+      <self_collide>false</self_collide>
+    </model>
+    <model name='Picking_Shelves'>
+      <link name='base_link'>
+        <visual name='base_visual'>
+          <geometry>
+            <mesh>
+              <uri>model://picking_shelves/base_visual.glb</uri>
+            </mesh>
+          </geometry>
+        </visual>
+        <collision name='pickingshelvesshort_collider_box'>
+          <pose>0 0 0.063500000000000001 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.90169999999999995 0.44431199999999998 0.025399999999999999</size>
+            </box>
+          </geometry>
+          <surface>
+            <friction>
+              <ode/>
+            </friction>
+            <bounce/>
+            <contact/>
+          </surface>
+        </collision>
+        <collision name='pickingshelvesshort005_collider_box'>
+          <pose>0 0 0.36830000000000002 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.90169999999999995 0.44431199999999998 0.025399999999999999</size>
+            </box>
+          </geometry>
+          <surface>
+            <friction>
+              <ode/>
+            </friction>
+            <bounce/>
+            <contact/>
+          </surface>
+        </collision>
+        <collision name='pickingshelvesshort010_collider_box'>
+          <pose>0 0 0.67310000000000003 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.90169999999999995 0.44431199999999998 0.025399999999999999</size>
+            </box>
+          </geometry>
+          <surface>
+            <friction>
+              <ode/>
+            </friction>
+            <bounce/>
+            <contact/>
+          </surface>
+        </collision>
+        <collision name='pickingshelvesshort015_collider_box'>
+          <pose>0 0 0.97789999999999999 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.90169999999999995 0.44431199999999998 0.025399999999999999</size>
+            </box>
+          </geometry>
+          <surface>
+            <friction>
+              <ode/>
+            </friction>
+            <bounce/>
+            <contact/>
+          </surface>
+        </collision>
+        <collision name='pickingshelvesshort020_collider_box'>
+          <pose>0 0 1.2827 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.90169999999999995 0.44431199999999998 0.025399999999999999</size>
+            </box>
+          </geometry>
+          <surface>
+            <friction>
+              <ode/>
+            </friction>
+            <bounce/>
+            <contact/>
+          </surface>
+        </collision>
+        <collision name='pickingshelvesshort025_collider_box'>
+          <pose>0 0 1.5874999999999999 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.90169999999999995 0.44431199999999998 0.025399999999999999</size>
+            </box>
+          </geometry>
+          <surface>
+            <friction>
+              <ode/>
+            </friction>
+            <bounce/>
+            <contact/>
+          </surface>
+        </collision>
+        <collision name='pickingshelvesshort030_collider_box'>
+          <pose>0 0 1.8923000000000001 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.90169999999999995 0.44431199999999998 0.025399999999999999</size>
+            </box>
+          </geometry>
+          <surface>
+            <friction>
+              <ode/>
+            </friction>
+            <bounce/>
+            <contact/>
+          </surface>
+        </collision>
+        <collision name='pickingshelvesshort035_collider_box'>
+          <pose>-0.43101299999999998 -0.20241300000000001 0.95250000000000001 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.052374999999999998 0.052374999999999998 1.905</size>
+            </box>
+          </geometry>
+          <surface>
+            <friction>
+              <ode/>
+            </friction>
+            <bounce/>
+            <contact/>
+          </surface>
+        </collision>
+        <collision name='pickingshelvesshort036_collider_box'>
+          <pose>-0.43101299999999998 0.20241300000000001 0.95250000000000001 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.052374999999999998 0.052374999999999998 1.905</size>
+            </box>
+          </geometry>
+          <surface>
+            <friction>
+              <ode/>
+            </friction>
+            <bounce/>
+            <contact/>
+          </surface>
+        </collision>
+        <collision name='pickingshelvesshort037_collider_box'>
+          <pose>0.43101299999999998 -0.20241300000000001 0.95250000000000001 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.052374999999999998 0.052374999999999998 1.905</size>
+            </box>
+          </geometry>
+          <surface>
+            <friction>
+              <ode/>
+            </friction>
+            <bounce/>
+            <contact/>
+          </surface>
+        </collision>
+        <collision name='pickingshelvesshort038_collider_box'>
+          <pose>0.43101299999999998 0.20241300000000001 0.95250000000000001 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.052374999999999998 0.052374999999999998 1.905</size>
+            </box>
+          </geometry>
+          <surface>
+            <friction>
+              <ode/>
+            </friction>
+            <bounce/>
+            <contact/>
+          </surface>
+        </collision>
+        <pose>0 0 0 0 0 0</pose>
+        <inertial>
+          <pose>0 0 0 0 0 0</pose>
+          <mass>1</mass>
+          <inertia>
+            <ixx>1</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>1</iyy>
+            <iyz>0</iyz>
+            <izz>1</izz>
+          </inertia>
+        </inertial>
+        <enable_wind>false</enable_wind>
+      </link>
+      <pose>1.55121 -4.7394800000000004 -5.6515400000000001e-07 -5.7825900000000002e-19 1.0966700000000001e-19 3.1268e-27</pose>
+      <static>false</static>
+      <self_collide>false</self_collide>
+    </model>
+    <model name='table_marble'>
+      <static>true</static>
+      <pose>-0.94349499999999997 3.0178500000000001 0.64800000000000002 0 0 0</pose>
+      <link name='link'>
+        <collision name='collision'>
+          <geometry>
+            <mesh>
+              <uri>model://table_marble/meshes/table_lightmap.dae</uri>
+              <scale>0.25 0.25 0.25</scale>
+            </mesh>
+          </geometry>
+        </collision>
+        <visual name='visual'>
+          <geometry>
+            <mesh>
+              <uri>model://table_marble/meshes/table_lightmap.dae</uri>
+              <scale>0.25 0.25 0.25</scale>
+            </mesh>
+          </geometry>
+          <material>
+            <diffuse>1 1 1 1</diffuse>
+            <script>
+              <uri>model://table_marble/materials/scripts</uri>
+              <uri>model://table_marble/materials/textures</uri>
+              <name>Table/Marble_Lightmap</name>
+            </script>
+            <lighting>false</lighting>
+            <pbr>
+              <metal>
+                <albedo_map>model://table_marble/materials/textures/marble.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+        <pose>0 0 0 0 0 0</pose>
+        <inertial>
+          <pose>0 0 0 0 0 0</pose>
+          <mass>1</mass>
+          <inertia>
+            <ixx>1</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>1</iyy>
+            <iyz>0</iyz>
+            <izz>1</izz>
+          </inertia>
+        </inertial>
+        <enable_wind>false</enable_wind>
+      </link>
+      <self_collide>false</self_collide>
+    </model>
+    <model name='brick_box_3x1x3'>
+      <static>true</static>
+      <link name='chassis'>
+        <pose>0 0 1.5 0 0 0</pose>
+        <collision name='collision'>
+          <geometry>
+            <box>
+              <size>3 0.5 3</size>
+            </box>
+          </geometry>
+          <surface>
+            <friction>
+              <ode/>
+            </friction>
+            <bounce/>
+            <contact/>
+          </surface>
+        </collision>
+        <visual name='visual'>
+          <geometry>
+            <mesh>
+              <uri>model://brick_box_3x1x3/meshes/simple_box.dae</uri>
+              <scale>3 0.5 3</scale>
+            </mesh>
+          </geometry>
+          <material>
+            <diffuse>1 1 1 1</diffuse>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Wood</name>
+            </script>
+            <pbr>
+              <metal>
+                <albedo_map>model://brick_box_3x1x3/materials/textures/simple_box.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+        <inertial>
+          <pose>0 0 0 0 0 0</pose>
+          <mass>1</mass>
+          <inertia>
+            <ixx>1</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>1</iyy>
+            <iyz>0</iyz>
+            <izz>1</izz>
+          </inertia>
+        </inertial>
+        <enable_wind>false</enable_wind>
+      </link>
+      <pose>-1.95557 -4.5662500000000001 0 0 0 0</pose>
+      <self_collide>false</self_collide>
+    </model>
+    <model name='sphere'>
+      <pose>2.64283 -0.63422000000000001 0.5 0 0 0</pose>
+      <link name='sphere_link'>
+        <inertial>
+          <inertia>
+            <ixx>0.10000000000000001</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>0.10000000000000001</iyy>
+            <iyz>0</iyz>
+            <izz>0.10000000000000001</izz>
+          </inertia>
+          <mass>1</mass>
+          <pose>0 0 0 0 0 0</pose>
+        </inertial>
+        <collision name='sphere_collision'>
+          <geometry>
+            <sphere>
+              <radius>0.5</radius>
+            </sphere>
+          </geometry>
+          <surface>
+            <friction>
+              <ode/>
+            </friction>
+            <bounce/>
+            <contact/>
+          </surface>
+        </collision>
+        <visual name='sphere_visual'>
+          <geometry>
+            <sphere>
+              <radius>0.5</radius>
+            </sphere>
+          </geometry>
+          <material>
+            <ambient>0 1 0 1</ambient>
+            <diffuse>0 1 0 1</diffuse>
+            <specular>1 1 1 1</specular>
+          </material>
+        </visual>
+        <pose>0 0 0 0 0 0</pose>
+        <enable_wind>false</enable_wind>
+      </link>
+      <static>false</static>
+      <self_collide>false</self_collide>
+    </model>
+    <model name='brick_box_3x1x3_1'>
+      <static>true</static>
+      <link name='chassis'>
+        <pose>0 0 1.5 0 0 0</pose>
+        <collision name='collision'>
+          <geometry>
+            <box>
+              <size>3 0.5 3</size>
+            </box>
+          </geometry>
+          <surface>
+            <friction>
+              <ode/>
+            </friction>
+            <bounce/>
+            <contact/>
+          </surface>
+        </collision>
+        <visual name='visual'>
+          <geometry>
+            <mesh>
+              <uri>model://brick_box_3x1x3/meshes/simple_box.dae</uri>
+              <scale>3 0.5 3</scale>
+            </mesh>
+          </geometry>
+          <material>
+            <diffuse>1 1 1 1</diffuse>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Wood</name>
+            </script>
+            <pbr>
+              <metal>
+                <albedo_map>model://brick_box_3x1x3/materials/textures/simple_box.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+      <pose>3.2631800000000002 6.2089999999999996 0 0 0 0</pose>
+      <self_collide>false</self_collide>
+    </model>
+    <model name='brick_box_3x1x3_1_1'>
+      <static>true</static>
+      <link name='chassis'>
+        <pose>0 0 1.5 0 0 0</pose>
+        <collision name='collision'>
+          <geometry>
+            <box>
+              <size>3 0.5 3</size>
+            </box>
+          </geometry>
+          <surface>
+            <friction>
+              <ode/>
+            </friction>
+            <bounce/>
+            <contact/>
+          </surface>
+        </collision>
+        <visual name='visual'>
+          <geometry>
+            <mesh>
+              <uri>model://brick_box_3x1x3/meshes/simple_box.dae</uri>
+              <scale>3 0.5 3</scale>
+            </mesh>
+          </geometry>
+          <material>
+            <diffuse>1 1 1 1</diffuse>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Wood</name>
+            </script>
+            <pbr>
+              <metal>
+                <albedo_map>model://brick_box_3x1x3/materials/textures/simple_box.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+      <pose>-0.153503 6.3386500000000003 0 0 0 0</pose>
+      <self_collide>false</self_collide>
+    </model>
+    <model name='brick_box_3x1x3_1_1_1'>
+      <static>true</static>
+      <link name='chassis'>
+        <pose>0 0 1.5 0 0 0</pose>
+        <collision name='collision'>
+          <geometry>
+            <box>
+              <size>3 0.5 3</size>
+            </box>
+          </geometry>
+          <surface>
+            <friction>
+              <ode/>
+            </friction>
+            <bounce/>
+            <contact/>
+          </surface>
+        </collision>
+        <visual name='visual'>
+          <geometry>
+            <mesh>
+              <uri>model://brick_box_3x1x3/meshes/simple_box.dae</uri>
+              <scale>3 0.5 3</scale>
+            </mesh>
+          </geometry>
+          <material>
+            <diffuse>1 1 1 1</diffuse>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Wood</name>
+            </script>
+            <pbr>
+              <metal>
+                <albedo_map>model://brick_box_3x1x3/materials/textures/simple_box.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+      <pose>-3.40794 6.7407300000000001 0 0 0 0</pose>
+      <self_collide>false</self_collide>
+    </model>
+    <include>
+      <uri>model://dumpster</uri>
+      <name>Dumpster</name>
+      <pose>8.5861936186368979 4.1075678796177693 0 0 0 0</pose>
+    </include>
+    <include>
+      <uri>model://Sofa</uri>
+      <name>Sofa</name>
+      <pose>7.3834578374063788 1.0773751835723331 0 0 0 0</pose>
+    </include>
+    <include>
+      <uri>model://pallet_standard</uri>
+      <name>Pallet_Standard</name>
+      <pose>7.2806819624546684 -1.3701144988005161 0 0 0 0</pose>
+    </include>
+    <include>
+      <uri>model://pallet_standard</uri>
+      <name>Pallet_Standard_0</name>
+      <pose>6.2420522366917908 -2.8645707094978432 0 0 0 0</pose>
+    </include>
+    <include>
+      <uri>model://pallet_standard</uri>
+      <name>Pallet_Standard_1</name>
+      <pose>4.9977680537505265 -4.195430635836555 0 0 0 0</pose>
+    </include>
+    <light name='sun' type='directional'>
+      <pose>0 0 10 0 0 0</pose>
+      <cast_shadows>true</cast_shadows>
+      <intensity>1</intensity>
+      <direction>-0.5 0.10000000000000001 -0.90000000000000002</direction>
+      <diffuse>0.800000012 0.800000012 0.800000012 1</diffuse>
+      <specular>0.200000003 0.200000003 0.200000003 1</specular>
+      <attenuation>
+        <range>1000</range>
+        <linear>0.0099999997764825821</linear>
+        <constant>0.89999997615814209</constant>
+        <quadratic>0.0010000000474974513</quadratic>
+      </attenuation>
+      <spot>
+        <inner_angle>0</inner_angle>
+        <outer_angle>0</outer_angle>
+        <falloff>0</falloff>
+      </spot>
+    </light>
+  </world>
+</sdf>
