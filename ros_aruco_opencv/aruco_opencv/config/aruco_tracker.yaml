@@ -3,13 +3,13 @@
     cam_base_topic: camera/image
     output_frame: ''
 
-    marker_dict: DICT_ARUCO_ORIGINAL
+    marker_dict: ARUCO_ORIGINAL
 
     image_is_rectified: false
     image_sub_compressed: false
     image_sub_qos:
       reliability: 2 # 0 - system default, 1 - reliable, 2 - best effort
-      durability: 2 # 0 - system default, 1 - transient local, 2 - volatile
+      durability: 2 # 0 - system default, 1 - roent local, 2 - volatile
       depth: 1
 
     publish_tf: true

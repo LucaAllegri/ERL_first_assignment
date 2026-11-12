@@ -441,16 +441,65 @@ protected:
       debug_cv_ptr->header = cv_ptr->header;
       debug_cv_ptr->encoding = cv_ptr->encoding;
       debug_cv_ptr->image = cv_ptr->image.clone();
-      cv::aruco::drawDetectedMarkers(debug_cv_ptr->image, marker_corners, marker_ids);
-      {
+      cv::aruco::drawDetectedMarkers(debug_cv_ptr->image, marker_corners, marker_ids);{
         cv::Mat camera_matrix, distortion_coeffs;
         detector_->get_intrinsics(camera_matrix, distortion_coeffs);
         for (size_t i = 0; i < rvec_final.size(); i++) {
-          cv::drawFrameAxes(
-            debug_cv_ptr->image, camera_matrix, distortion_coeffs, rvec_final[i],
-            tvec_final[i], 0.2, 3);
+          cv::drawFrameAxes(debug_cv_ptr->image, camera_matrix, distortion_coeffs, rvec_final[i], tvec_final[i], 0.2, 3);
         }
       }
+
+      // Draw a circle around each detected marker
+    /*for (size_t i = 0; i < marker_corners.size(); i++) {
+
+      // Calculate marker center
+      float cx = 0.0f;
+      float cy = 0.0f;
+
+      for (size_t j = 0; j < 4; j++) {
+          cx += marker_corners[i][j].x;
+          cy += marker_corners[i][j].y;
+      }
+
+
+
+      cx /= 4.0f;
+      cy /= 4.0f;
+
+      cv::Point center(
+          static_cast<int>(std::round(cx)),
+          static_cast<int>(std::round(cy))
+      );
+
+      // Calculate radius
+      float radius = 0.0f;
+
+      for (size_t j = 0; j < 4; j++) {
+          float dx = marker_corners[i][j].x - cx;
+          float dy = marker_corners[i][j].y - cy;
+
+          float distance = std::sqrt(dx * dx + dy * dy);
+
+          radius = std::max(radius, distance);
+      }
+
+      // Draw circle
+      cv::circle(
+          debug_cv_ptr->image,
+          center,
+          static_cast<int>(std::ceil(radius)),
+          cv::Scalar(0, 255, 0),
+          2
+      );
+
+      // Print marker ID
+      RCLCPP_DEBUG(
+              get_logger(),
+              "Marker ID: %d | CX: %.2f | CY: %.2f",
+              marker_ids[i], cx, cy
+          );
+    }*/
+
       std::unique_ptr<sensor_msgs::msg::Image> debug_img =
         std::make_unique<sensor_msgs::msg::Image>();
       debug_cv_ptr->toImageMsg(*debug_img);
