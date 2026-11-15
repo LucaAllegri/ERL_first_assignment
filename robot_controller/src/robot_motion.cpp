@@ -5,40 +5,39 @@
 #include "rclcpp/rclcpp.hpp"
 #include "geometry_msgs/msg/twist.hpp"
 
+using std::placeholders::_1;
 using namespace std::chrono_literals;
 
 class RobotMotion : public rclcpp::Node{
 
     public:
 
-        RobotMotion() : Node("robot_motion"){
-            // PUBLISHERS
+        RobotMotion() : Node("motion"){
+
+            //PUBLISHERS
             cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
 
-            // TIMER
-            timer_ = this->create_wall_timer(100ms,std::bind(&RobotMotion::moveRobot, this));
+            //SUBSCRIBER
+            intermediate_vel_sub = this->create_subscription<geometry_msgs::msg::Twist>("/intermediate_cmd_vel", 10, std::bind(&RobotMotion::vel_callback, this, _1));
 
             RCLCPP_INFO(this->get_logger(),"Robot motion node started!");
         }
 
     private:
 
-        void moveRobot(){
-            geometry_msgs::msg::Twist cmd;
-
-            // Move forward
-            cmd.linear.x = 0.1;
-            cmd.angular.z = 0.0;
-
-            cmd_vel_pub_->publish(cmd);
-        
+        void vel_callback(const geometry_msgs::msg::Twist::SharedPtr msg){
+            cmd_vel_pub_->publish(*msg);
         }
 
+        //PUBLISHERS
         rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
 
+        //SUBSCRIPTION
+        rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr intermediate_vel_sub;
+
+        //TIMERS
         rclcpp::TimerBase::SharedPtr timer_;
 
-        int counter_ = 0;
 };
 
 

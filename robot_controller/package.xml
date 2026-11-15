@@ -9,13 +9,11 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <depend>geometry_msgs</depend>
-
   <depend>rclcpp</depend>
+  <depend>geometry_msgs</depend>
+  <depend>robot_interfaces</depend>
+  <depend>aruco_opencv_msgs</depend>
   <depend>sensor_msgs</depend>
-  <depend>cv_bridge</depend>
-  <depend>image_transport</depend>
-  <depend>opencv</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

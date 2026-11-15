@@ -11,23 +11,24 @@ find_package(rclcpp REQUIRED)
 
 if(BUILD_TESTING)
 
-  find_package(geometry_msgs REQUIRED)
-
   find_package(ament_lint_auto REQUIRED)
-  find_package(rclcpp REQUIRED)
-  find_package(sensor_msgs REQUIRED)
 
-  find_package(cv_bridge REQUIRED)
-  find_package(image_transport REQUIRED)
-  find_package(OpenCV REQUIRED)
+  find_package(rclcpp REQUIRED)
+  find_package(geometry_msgs REQUIRED)
+  find_package(sensor_msgs REQUIRED)
+  find_package(robot_interfaces REQUIRED)
+  find_package(aruco_opencv_msgs REQUIRED)
+  
 
   add_executable(robot_motion src/robot_motion.cpp)
+  add_executable(perception_node src/perception_node.cpp)
 
-  ament_target_dependencies(robot_motion rclcpp geometry_msgs
-  )
+  ament_target_dependencies(robot_motion rclcpp geometry_msgs)
+  ament_target_dependencies(perception_node rclcpp geometry_msgs robot_interfaces aruco_opencv_msgs sensor_msgs)
 
   install(TARGETS
       robot_motion
+      perception_node
       DESTINATION lib/${PROJECT_NAME}
   )
 

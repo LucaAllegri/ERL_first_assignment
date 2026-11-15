@@ -3,6 +3,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch_xml.launch_description_sources import XMLLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, Command
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
@@ -10,6 +11,8 @@ from ament_index_python.packages import get_package_share_directory
 def generate_launch_description():
 
     pkg_erl1= get_package_share_directory('erl1')
+    pkg_aruco = get_package_share_directory('aruco_opencv')
+    aruco_cfg = os.path.join(pkg_aruco, 'config', 'aruco_tracker.yaml')
 
     gazebo_models_path, ignore_last_dir = os.path.split(pkg_erl1)
     # lets Gazebo find package://erl1/... (e.g. the meshes)
@@ -119,12 +122,53 @@ def generate_launch_description():
     )
 
 
+    perception_node = Node(
+        package='robot_controller',
+        executable='perception_node',
+        name='perception_node',
+        output='screen',
+        parameters=[
+            aruco_cfg,                       # cam_base_topic, marker_dict, marker_size
+            {
+                'use_sim_time': True,
+                'target_side_px': 166.0,
+                'k_v': 0.005,
+                'k_w': 0.005,
+            },
+        ],
+    )
+
+    aruco_launch = IncludeLaunchDescription(
+        XMLLaunchDescriptionSource(
+            os.path.join(
+                pkg_aruco,
+                'launch',
+                'aruco_tracker.launch.xml'
+            )
+        )
+    )
+
+    aruco_node = Node(
+        package='aruco_opencv',
+        executable='aruco_tracker_autostart',
+        name='aruco_tracker',
+        output='screen',
+        parameters=[
+            aruco_cfg,
+            {
+                'use_sim_time': True, 
+
+            },
+        ],
+    )
+
+
 
     gz_bridge_node = Node(
         package="ros_gz_bridge",
         executable="parameter_bridge",
         arguments=[
-            "/clock@rosgraph_msgs/msg/Cloccd k[gz.msgs.Clock",
+            "/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock",
             "/cmd_vel@geometry_msgs/msg/Twist]gz.msgs.Twist",
             "/odom@nav_msgs/msg/Odometry[gz.msgs.Odometry",
             "/joint_states@sensor_msgs/msg/JointState[gz.msgs.Model",
@@ -160,5 +204,9 @@ def generate_launch_description():
     launchDescriptionObject.add_action(gz_bridge_node)
     launchDescriptionObject.add_action(gz_image_bridge_node)
     launchDescriptionObject.add_action(ekf_node)
+
+    #launchDescriptionObject.add_action(aruco_launch)
+    launchDescriptionObject.add_action(aruco_node)
+    launchDescriptionObject.add_action(perception_node)
 
     return launchDescriptionObject
