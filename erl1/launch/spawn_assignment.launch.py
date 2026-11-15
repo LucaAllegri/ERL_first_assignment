@@ -132,8 +132,8 @@ def generate_launch_description():
             {
                 'use_sim_time': True,
                 'target_side_px': 166.0,
-                'k_v': 0.005,
-                'k_w': 0.005,
+                'k_v': 0.002,
+                'k_w': 0.002,
             },
         ],
     )

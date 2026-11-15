@@ -59,6 +59,8 @@ class PerceptionNode : public rclcpp::Node{
 
             double board_error = sd - s;
 
+            RCLCPP_INFO(this->get_logger(), "s = %.1f px | errore = %.1f px | z = %.2f m", s, board_error, z);
+
             if (std::abs(board_error) < 1){
                 vel.linear.x = 0.0;
                 vel.angular.z = 0.0;
