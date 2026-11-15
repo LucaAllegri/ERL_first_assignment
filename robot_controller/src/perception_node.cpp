@@ -9,6 +9,8 @@
 #include "aruco_opencv_msgs/msg/aruco_detection.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
 #include "sensor_msgs/msg/image.hpp"
+#include "cv_bridge/cv_bridge.h"
+
 using std::placeholders::_1;
 
 using namespace std::chrono_literals;
@@ -64,6 +66,12 @@ class PerceptionNode : public rclcpp::Node{
             if (std::abs(board_error) < 1){
                 vel.linear.x = 0.0;
                 vel.angular.z = 0.0;
+
+                auto debug_cv_ptr = std::make_shared<cv_bridge::CvImage>();
+                debug_cv_ptr->header = cv_ptr->header;
+                debug_cv_ptr->encoding = cv_ptr->encoding;
+                debug_cv_ptr->image = cv_ptr->image.clone();
+
             }else{
                 vel.linear.x = k_v * board_error;
                 vel.angular.z = 0.0;
@@ -78,8 +86,8 @@ class PerceptionNode : public rclcpp::Node{
             cy = msg->k[5];
         }
 
-        void image_info_callback(const sensor_msgs::msg::Image::SharedPtr msg){
-           int b=0;
+        void image_info_callback(const sensor_msgs::msg::Image::SharedPtr img_msg){
+           cv_ptr = cv_bridge::toCvCopy(img_msg, "bgr8");
         }
 
         //PUBLISHER
@@ -101,6 +109,7 @@ class PerceptionNode : public rclcpp::Node{
         double fx=0.0, fy=0.0;
         double cx=0.0, cy=0.0;
         double s;
+        cv_bridge::CvImageConstPtr cv_ptr;
 
         //TIMERS
         rclcpp::TimerBase::SharedPtr timer_;
