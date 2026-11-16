@@ -21,7 +21,7 @@ public:
     PerceptionNode() : Node("perception_node") {
 
         // PUBLISHERS
-        marker_img_pub = this->create_publisher<robot_interfaces::msg::MarkerImage>("/marker_image", 10);
+        marker_img_pub = this->create_publisher<sensor_msgs::msg::Image>("/marker_image", 10);
         size_error_pub = this->create_publisher<std_msgs::msg::Float64>("/size_error", 10);
 
         // SUBSCRIBERS
@@ -66,6 +66,36 @@ private:
         std_msgs::msg::Float64 board_error;
         board_error.data = sd - s;
 
+        /*if(board_error.data <= 1.0){
+
+
+            robot_interfaces::msg::MarkerImage first_marker;
+            first_marker.marker_id = 1;
+
+            cv::circle(cv_ptr->image, cv::Point(cx, cy), 0.5, cv::Scalar(0, 255, 0), 3);
+
+            cv::putText(cv_ptr->image, "id " + std::to_string(first_marker.marker_id), cv::Point(cx - 0.5, cy - 0.5 - 10), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0),2);
+        
+            first_marker.circle_image = *cv_ptr->toImageMsg();
+            marker_img_pub->publish(first_marker);
+        
+        }*/
+
+        if(board_error.data <= 1.0){
+
+
+            sensor_msgs::msg::Image first_marker;
+            //first_marker.marker_id = 1;
+
+            cv::circle(cv_ptr->image, cv::Point(cx, cy), 20, cv::Scalar(0, 255, 0), 3);
+
+            cv::putText(cv_ptr->image, "id 43", cv::Point(cx - 20, cy - 20 - 10), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0),2);
+        
+            first_marker = *cv_ptr->toImageMsg();
+            marker_img_pub->publish(first_marker);
+        
+        }
+
         size_error_pub->publish(board_error);
     }
 
@@ -80,15 +110,10 @@ private:
     // IMAGE CALLBACK
     void image_info_callback(const sensor_msgs::msg::Image::SharedPtr img_msg) {
         cv_ptr = cv_bridge::toCvCopy(img_msg, "bgr8");
-
-        auto debug_cv_ptr = std::make_shared<cv_bridge::CvImage>();
-        debug_cv_ptr->header = cv_ptr->header;
-        debug_cv_ptr->encoding = cv_ptr->encoding;
-        debug_cv_ptr->image = cv_ptr->image.clone();
     }
 
     // PUBLISHERS
-    rclcpp::Publisher<robot_interfaces::msg::MarkerImage>::SharedPtr marker_img_pub;
+    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr marker_img_pub;
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr size_error_pub;
 
     // SUBSCRIBERS

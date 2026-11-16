@@ -43,6 +43,8 @@ private:
             vel.linear.x = 0.0;
             vel.angular.z = 0.0;
 
+
+
         } else {
 
             vel.linear.x = k_v * msg->data;
