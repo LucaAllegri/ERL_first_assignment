@@ -19,7 +19,7 @@ public:
         cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
 
         // SUBSCRIBERS
-        size_error_sub = this->create_subscription<std_msgs::msg::Float64>("/size_error", 10, std::bind(&RobotMotion::size_error_callback, this, _1));
+        side_error_sub = this->create_subscription<std_msgs::msg::Float64>("/side_error", 10, std::bind(&RobotMotion::side_error_callback, this, _1));
 
         // PARAMETERS
         /*this->declare_parameter<double>("k_v", 0.005);
@@ -33,8 +33,8 @@ public:
 
 private:
 
-    // SIZE ERROR CALLBACK
-    void size_error_callback(const std_msgs::msg::Float64::SharedPtr msg) {
+    // side ERROR CALLBACK
+    void side_error_callback(const std_msgs::msg::Float64::SharedPtr msg) {
 
         geometry_msgs::msg::Twist vel;
 
@@ -58,7 +58,7 @@ private:
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
 
     // SUBSCRIBERS
-    rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr size_error_sub;
+    rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr side_error_sub;
 
     // PARAMETERS
     double k_v=0.002;

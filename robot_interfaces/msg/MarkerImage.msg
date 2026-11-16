@@ -1,2 +1,2 @@
-uint16 marker_id
+uint16 id
 sensor_msgs/Image circle_image

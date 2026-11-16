@@ -21,8 +21,9 @@ public:
     PerceptionNode() : Node("perception_node") {
 
         // PUBLISHERS
-        marker_img_pub = this->create_publisher<sensor_msgs::msg::Image>("/marker_image", 10);
-        size_error_pub = this->create_publisher<std_msgs::msg::Float64>("/size_error", 10);
+        marker_img_pub = this->create_publisher<robot_interfaces::msg::MarkerImage>("/marker_image", 10);
+        circle_pub = this->create_publisher<sensor_msgs::msg::Image>("/camera/image", 10);   //circle_pub_topic
+        side_error_pub = this->create_publisher<std_msgs::msg::Float64>("/side_error", 10);
 
         // SUBSCRIBERS
         aruco_detection_sub = this->create_subscription<aruco_opencv_msgs::msg::ArucoDetection>("/aruco_detections", 10,std::bind(&PerceptionNode::aruco_detect_callback, this, _1));
@@ -31,13 +32,13 @@ public:
 
         // PARAMETERS
         this->declare_parameter<std::string>("cam_base_topic", "/camera/image");
-        this->declare_parameter<double>("marker_size", 0.2);
+        this->declare_parameter<double>("marker_side", 0.2);
         this->declare_parameter<double>("target_side_px", 166.0);
         this->declare_parameter<double>("k_v", 0.005);
         this->declare_parameter<double>("k_w", 0.005);
 
         cam_base_topic = this->get_parameter("cam_base_topic").as_string();
-        L = this->get_parameter("marker_size").as_double();
+        L = this->get_parameter("marker_side").as_double();
         sd = this->get_parameter("target_side_px").as_double();
         k_v = this->get_parameter("k_v").as_double();
         k_w = this->get_parameter("k_w").as_double();
@@ -48,13 +49,17 @@ public:
 
 private:
 
-    // ARUCO CALLBACK
+
     void aruco_detect_callback(const aruco_opencv_msgs::msg::ArucoDetection::SharedPtr msg) {
         
         if (msg->markers.empty() || fx == 0.0) {
             return;
         }
 
+        int marker_id = msg->markers[0].marker_id;
+
+        double x = msg->markers[0].pose.position.x;
+        double y = msg->markers[0].pose.position.y;
         double z = msg->markers[0].pose.position.z;
 
         if (z <= 0.0) {
@@ -63,40 +68,28 @@ private:
 
         s = fx * L / z;
 
-        std_msgs::msg::Float64 board_error;
-        board_error.data = sd - s;
+        side_error.data = sd - s;
 
-        /*if(board_error.data <= 1.0){
+        int u = static_cast<int>(fx * x / z + cx);   // centro del marker, in pixel
+        int v = static_cast<int>(fy * y / z + cy);
+        int r = static_cast<int>(std::ceil(s * 0.7071)); 
 
+        if(side_error.data <= 1.0){
 
-            robot_interfaces::msg::MarkerImage first_marker;
-            first_marker.marker_id = 1;
+            cv::circle(cv_ptr->image, cv::Point(u, v), r, cv::Scalar(0, 255, 0), 3);
 
-            cv::circle(cv_ptr->image, cv::Point(cx, cy), 0.5, cv::Scalar(0, 255, 0), 3);
-
-            cv::putText(cv_ptr->image, "id " + std::to_string(first_marker.marker_id), cv::Point(cx - 0.5, cy - 0.5 - 10), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0),2);
+            cv::putText(cv_ptr->image, "id " + std::to_string(marker_id), cv::Point(u - r, v - r - 10), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0),2);
         
-            first_marker.circle_image = *cv_ptr->toImageMsg();
-            marker_img_pub->publish(first_marker);
-        
-        }*/
+            circle_image = *cv_ptr->toImageMsg();
+            circle_pub->publish(circle_image);
 
-        if(board_error.data <= 1.0){
-
-
-            sensor_msgs::msg::Image first_marker;
-            //first_marker.marker_id = 1;
-
-            cv::circle(cv_ptr->image, cv::Point(cx, cy), 20, cv::Scalar(0, 255, 0), 3);
-
-            cv::putText(cv_ptr->image, "id 43", cv::Point(cx - 20, cy - 20 - 10), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0),2);
-        
-            first_marker = *cv_ptr->toImageMsg();
-            marker_img_pub->publish(first_marker);
+            marker_msg.id = marker_id;
+            marker_msg.circle_image = circle_image;
+            marker_img_pub->publish(marker_msg);
         
         }
 
-        size_error_pub->publish(board_error);
+        side_error_pub->publish(side_error);
     }
 
     // CAMERA INFO CALLBACK
@@ -113,8 +106,9 @@ private:
     }
 
     // PUBLISHERS
-    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr marker_img_pub;
-    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr size_error_pub;
+    rclcpp::Publisher<robot_interfaces::msg::MarkerImage>::SharedPtr marker_img_pub;
+    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr circle_pub;
+    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr side_error_pub;
 
     // SUBSCRIBERS
     rclcpp::Subscription<aruco_opencv_msgs::msg::ArucoDetection>::SharedPtr aruco_detection_sub;
@@ -129,14 +123,15 @@ private:
     double k_w;
 
     // VARIABLES
+    robot_interfaces::msg::MarkerImage marker_msg;
+    sensor_msgs::msg::Image circle_image;
+    std_msgs::msg::Float64 side_error;
+    cv_bridge::CvImagePtr cv_ptr;
     double fx = 0.0;
     double fy = 0.0;
     double cx = 0.0;
     double cy = 0.0;
-
     double s = 0.0;
-
-    cv_bridge::CvImagePtr cv_ptr;
 
     // TIMERS
     rclcpp::TimerBase::SharedPtr timer_;
