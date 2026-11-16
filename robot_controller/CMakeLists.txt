@@ -19,13 +19,14 @@ if(BUILD_TESTING)
   find_package(robot_interfaces REQUIRED)
   find_package(aruco_opencv_msgs REQUIRED)
   find_package(cv_bridge REQUIRED)
+  find_package(std_msgs REQUIRED)
   
 
   add_executable(robot_motion src/robot_motion.cpp)
   add_executable(perception_node src/perception_node.cpp)
 
-  ament_target_dependencies(robot_motion rclcpp geometry_msgs)
-  ament_target_dependencies(perception_node rclcpp geometry_msgs robot_interfaces aruco_opencv_msgs sensor_msgs cv_bridge)
+  ament_target_dependencies(robot_motion rclcpp geometry_msgs std_msgs)
+  ament_target_dependencies(perception_node rclcpp geometry_msgs robot_interfaces aruco_opencv_msgs sensor_msgs cv_bridge std_msgs)
 
   install(TARGETS
       robot_motion
