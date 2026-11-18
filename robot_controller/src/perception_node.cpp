@@ -32,19 +32,20 @@ public:
         image_info_sub = this->create_subscription<sensor_msgs::msg::Image>("/camera/image", 10,std::bind(&PerceptionNode::image_info_callback, this, _1));
 
         // PARAMETERS
-        this->declare_parameter<std::string>("cam_base_topic", "/camera/image");
         this->declare_parameter<double>("marker_side", 0.2);
         this->declare_parameter<double>("target_side_px", 166.0);
-        this->declare_parameter<double>("k_v", 0.005);
-        this->declare_parameter<double>("k_w", 0.005);
 
-        cam_base_topic = this->get_parameter("cam_base_topic").as_string();
         L = this->get_parameter("marker_side").as_double();
         sd = this->get_parameter("target_side_px").as_double();
-        k_v = this->get_parameter("k_v").as_double();
-        k_w = this->get_parameter("k_w").as_double();
 
-        errors.side_err.data = 200.0;
+        // VARIABLES 
+        id_to_reach = 1;
+        flag = true;
+        fx = 0.0;
+        fy = 0.0;
+        cx = 0.0;
+        cy = 0.0;
+        s = 0.0;
 
         RCLCPP_INFO(this->get_logger(), "Perception node started!");
     }
@@ -58,43 +59,63 @@ private:
             return;
         }
 
-        int marker_id = msg->markers[0].marker_id;
+        int marker_id = 0;
+        double x = NULL;
+        double y = NULL;
+        double z = NULL;
 
-        double x = msg->markers[0].pose.position.x;
-        double y = msg->markers[0].pose.position.y;
-        double z = msg->markers[0].pose.position.z;
-
-        if (z <= 0.0) {
-            return;
+        for(int i = 0; i < 3; i++){
+            if(id_to_reach == msg->markers[i].marker_id){
+                x = msg->markers[i].pose.position.x;
+                y = msg->markers[i].pose.position.y;
+                z = msg->markers[i].pose.position.z;
+                marker_id = msg->markers[i].marker_id;
+            }
         }
 
-        s = fx * L / z;
+        //RCLCPP_INFO(this->get_logger(), "marker_id detected: %d", marker_id);
+        //RCLCPP_INFO(this->get_logger(), "idx to reach: %d", id_to_reach);
+        if (x != NULL){
+            if (z <= 0.0) {
+                return;
+            }
 
-        sensor_msgs::msg::Image circle_image;
+            s = fx * L / z;
 
-        int u = static_cast<int>(fx * x / z + cx);   // centro del marker, in pixel
-        int v = static_cast<int>(fy * y / z + cy);
-        int r = static_cast<int>(std::ceil(s * 0.7071));
+            sensor_msgs::msg::Image circle_image;
 
-        errors.side_err.data = sd - s;
-        errors.misalignment_err.data = u - cx;
+            int u = static_cast<int>(fx * x / z + cx);   // centro del marker, in pixel
+            int v = static_cast<int>(fy * y / z + cy);
+            int r = static_cast<int>(std::ceil(s * 0.7071));
 
-        if(errors.side_err.data <= 1.0){
+            errors.side_err.data = sd - s;
+            errors.misalignment_err.data = u - cx;
 
-            cv::circle(cv_ptr->image, cv::Point(u, v), r, cv::Scalar(0, 255, 0), 3);
+            if(errors.side_err.data <= 1.0 && flag == true){
 
-            cv::putText(cv_ptr->image, "id " + std::to_string(marker_id), cv::Point(u - r, v - r - 10), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0),2);
-        
-            circle_image = *cv_ptr->toImageMsg();
-            circle_pub->publish(circle_image);
+                cv::circle(cv_ptr->image, cv::Point(u, v), r, cv::Scalar(0, 255, 0), 3);
 
-            marker_msg.id = marker_id;
-            marker_msg.circle_image = circle_image;
-            marker_img_pub->publish(marker_msg);
-        
+                cv::putText(cv_ptr->image, "id " + std::to_string(marker_id), cv::Point(u - r, v - r - 10), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0),2);
+            
+                circle_image = *cv_ptr->toImageMsg();
+                circle_pub->publish(circle_image);
+
+                marker_msg.id = marker_id;
+                marker_msg.circle_image = circle_image;
+                marker_img_pub->publish(marker_msg);
+                id_to_reach++;
+                flag = false;
+
+            } else if(errors.side_err.data > 1.0 && flag == false){
+                flag = true;
+            }
+
+            errors_pub->publish(errors);
+
+        }else{
+            errors.side_err.data = 10;
+            errors.misalignment_err.data = 0;
         }
-
-        errors_pub->publish(errors);
     }
 
     // CAMERA INFO CALLBACK
@@ -112,8 +133,8 @@ private:
 
     // PUBLISHERS
     rclcpp::Publisher<robot_interfaces::msg::MarkerImage>::SharedPtr marker_img_pub;
-    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr circle_pub;
     rclcpp::Publisher<robot_interfaces::msg::ErrorsMsg>::SharedPtr errors_pub;
+    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr circle_pub;
 
     // SUBSCRIBERS
     rclcpp::Subscription<aruco_opencv_msgs::msg::ArucoDetection>::SharedPtr aruco_detection_sub;
@@ -121,24 +142,21 @@ private:
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_info_sub;
 
     // PARAMETERS
-    std::string cam_base_topic;
-    double L;
     double sd;
-    double k_v;
-    double k_w;
+    double L;
 
     // VARIABLES
     robot_interfaces::msg::MarkerImage marker_msg;
     robot_interfaces::msg::ErrorsMsg errors;
     cv_bridge::CvImagePtr cv_ptr;
-    double fx = 0.0;
-    double fy = 0.0;
-    double cx = 0.0;
-    double cy = 0.0;
-    double s = 0.0;
+    int id_to_reach;
+    bool flag;
+    double fx;
+    double fy;
+    double cx;
+    double cy;
+    double s;
 
-    // TIMERS
-    rclcpp::TimerBase::SharedPtr timer_;
 };
 
 

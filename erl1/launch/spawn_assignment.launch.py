@@ -6,6 +6,7 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_xml.launch_description_sources import XMLLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, Command
 from launch_ros.actions import Node
+from launch.actions import TimerAction
 from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
@@ -128,14 +129,32 @@ def generate_launch_description():
         name='perception_node',
         output='screen',
         parameters=[
-            aruco_cfg,                       # cam_base_topic, marker_dict, marker_size
             {
                 'use_sim_time': True,
                 'target_side_px': 166.0,
-                'k_v': 0.002,
-                'k_w': 0.002,
             },
         ],
+    )
+
+    motion_node = Node(
+        package='robot_controller',
+        executable='robot_motion',
+        name='robot_motion',
+        output='screen',
+        parameters=[
+            aruco_cfg,                       # cam_base_topic, marker_dict, marker_size
+            {
+                'use_sim_time': True,
+                'k_v': 0.005,
+                'k_w': 0.001,
+                'k_a': 0.3
+            },
+        ],
+    )
+
+    delayed_motion_node = TimerAction(
+        period=8.0,
+        actions=[motion_node]
     )
 
     aruco_launch = IncludeLaunchDescription(
@@ -208,5 +227,6 @@ def generate_launch_description():
     #launchDescriptionObject.add_action(aruco_launch)
     launchDescriptionObject.add_action(aruco_node)
     launchDescriptionObject.add_action(perception_node)
+    launchDescriptionObject.add_action(delayed_motion_node)
 
     return launchDescriptionObject
