@@ -40,8 +40,7 @@ struct BoardDescription
   int first_id;
 };
 
-class BoardLoader
-{
+class BoardLoader {
 public:
   static bool load_from_file(
     const std::string & path,

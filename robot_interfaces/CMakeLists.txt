@@ -12,6 +12,7 @@ find_package(sensor_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/MarkerImage.msg"
+  "msg/ErrorsMsg.msg"
   DEPENDENCIES sensor_msgs
 )
 # uncomment the following section in order to fill in

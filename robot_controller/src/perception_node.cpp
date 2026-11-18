@@ -5,10 +5,11 @@
 #include "rclcpp/rclcpp.hpp"
 #include "geometry_msgs/msg/twist.hpp"
 #include "robot_interfaces/msg/marker_image.hpp"
+#include "robot_interfaces/msg/errors_msg.hpp"
 #include "aruco_opencv_msgs/msg/aruco_detection.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
 #include "sensor_msgs/msg/image.hpp"
-#include "cv_bridge/cv_bridge.h"
+#include "cv_bridge/cv_bridge.hpp"
 #include "std_msgs/msg/float64.hpp"
 
 using std::placeholders::_1;
@@ -22,8 +23,8 @@ public:
 
         // PUBLISHERS
         marker_img_pub = this->create_publisher<robot_interfaces::msg::MarkerImage>("/marker_image", 10);
-        circle_pub = this->create_publisher<sensor_msgs::msg::Image>("/camera/image", 10);   //circle_pub_topic
-        side_error_pub = this->create_publisher<std_msgs::msg::Float64>("/side_error", 10);
+        circle_pub = this->create_publisher<sensor_msgs::msg::Image>("/circle_pub_topic", 10);   //circle_pub_topic
+        errors_pub = this->create_publisher<robot_interfaces::msg::ErrorsMsg>("/errors_topic", 10);
 
         // SUBSCRIBERS
         aruco_detection_sub = this->create_subscription<aruco_opencv_msgs::msg::ArucoDetection>("/aruco_detections", 10,std::bind(&PerceptionNode::aruco_detect_callback, this, _1));
@@ -43,6 +44,7 @@ public:
         k_v = this->get_parameter("k_v").as_double();
         k_w = this->get_parameter("k_w").as_double();
 
+        errors.side_err.data = 200.0;
 
         RCLCPP_INFO(this->get_logger(), "Perception node started!");
     }
@@ -68,13 +70,16 @@ private:
 
         s = fx * L / z;
 
-        side_error.data = sd - s;
+        sensor_msgs::msg::Image circle_image;
 
         int u = static_cast<int>(fx * x / z + cx);   // centro del marker, in pixel
         int v = static_cast<int>(fy * y / z + cy);
-        int r = static_cast<int>(std::ceil(s * 0.7071)); 
+        int r = static_cast<int>(std::ceil(s * 0.7071));
 
-        if(side_error.data <= 1.0){
+        errors.side_err.data = sd - s;
+        errors.misalignment_err.data = u - cx;
+
+        if(errors.side_err.data <= 1.0){
 
             cv::circle(cv_ptr->image, cv::Point(u, v), r, cv::Scalar(0, 255, 0), 3);
 
@@ -89,7 +94,7 @@ private:
         
         }
 
-        side_error_pub->publish(side_error);
+        errors_pub->publish(errors);
     }
 
     // CAMERA INFO CALLBACK
@@ -108,7 +113,7 @@ private:
     // PUBLISHERS
     rclcpp::Publisher<robot_interfaces::msg::MarkerImage>::SharedPtr marker_img_pub;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr circle_pub;
-    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr side_error_pub;
+    rclcpp::Publisher<robot_interfaces::msg::ErrorsMsg>::SharedPtr errors_pub;
 
     // SUBSCRIBERS
     rclcpp::Subscription<aruco_opencv_msgs::msg::ArucoDetection>::SharedPtr aruco_detection_sub;
@@ -124,8 +129,7 @@ private:
 
     // VARIABLES
     robot_interfaces::msg::MarkerImage marker_msg;
-    sensor_msgs::msg::Image circle_image;
-    std_msgs::msg::Float64 side_error;
+    robot_interfaces::msg::ErrorsMsg errors;
     cv_bridge::CvImagePtr cv_ptr;
     double fx = 0.0;
     double fy = 0.0;
