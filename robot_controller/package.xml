@@ -15,6 +15,7 @@
   <depend>aruco_opencv_msgs</depend>
   <depend>sensor_msgs</depend>
   <depend>cv_bridge</depend>
+  <depend>image_transport</depend>
   <depend>std_msgs</depend>
   <depend>nav_msgs</depend>
 

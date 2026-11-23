@@ -1,19 +1,22 @@
-#include <chrono>
 #include <memory>
 #include <cmath>
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <deque>
+#include <string>
+#include <stdexcept>
 
 #include "rclcpp/rclcpp.hpp"
-#include "geometry_msgs/msg/twist.hpp"
-#include "robot_interfaces/msg/marker_image.hpp"
+#include "image_transport/image_transport.hpp"
 #include "robot_interfaces/msg/errors_msg.hpp"
 #include "aruco_opencv_msgs/msg/aruco_detection.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
 #include "sensor_msgs/msg/image.hpp"
 #include "cv_bridge/cv_bridge.hpp"
-#include "std_msgs/msg/float64.hpp"
-
-using std::placeholders::_1;
-using namespace std::chrono_literals;
+#include "opencv2/imgproc.hpp"
+#include "std_msgs/msg/header.hpp"
+#include "std_msgs/msg/u_int16.hpp"
 
 class PerceptionNode : public rclcpp::Node {
 
@@ -22,143 +25,183 @@ public:
     PerceptionNode() : Node("perception_node") {
 
         // PUBLISHERS
-        marker_img_pub = this->create_publisher<robot_interfaces::msg::MarkerImage>("/marker_image", 10);
-        circle_pub = this->create_publisher<sensor_msgs::msg::Image>("/circle_pub_topic", 10);   //circle_pub_topic
-        errors_pub = this->create_publisher<robot_interfaces::msg::ErrorsMsg>("/errors_topic", 10);
+        marker_img_pub = image_transport::create_publisher(this, "/marker_image");
+        circle_pub = create_publisher<Image>("/circle_pub_topic", 10);
+        errors_pub = create_publisher<Errors>("/errors_topic", 10);
+
 
         // SUBSCRIBERS
-        aruco_detection_sub = this->create_subscription<aruco_opencv_msgs::msg::ArucoDetection>("/aruco_detections", 10,std::bind(&PerceptionNode::aruco_detect_callback, this, _1));
-        camera_info_sub = this->create_subscription<sensor_msgs::msg::CameraInfo>("/camera/camera_info", 10,std::bind(&PerceptionNode::camera_info_callback, this, _1));
-        image_info_sub = this->create_subscription<sensor_msgs::msg::Image>("/camera/image", 10,std::bind(&PerceptionNode::image_info_callback, this, _1));
-
+        camera_info_sub = create_subscription<sensor_msgs::msg::CameraInfo>(
+            "/camera/camera_info", rclcpp::SensorDataQoS(),
+            [this](sensor_msgs::msg::CameraInfo::ConstSharedPtr message) {
+                camera_info_ = message;
+            });
+        image_info_sub = create_subscription<Image>(
+            "/camera/image", rclcpp::SensorDataQoS(),
+            [this](Image::ConstSharedPtr image) {
+                images_.push_back(image);
+                if (images_.size() > cache_size) {
+                    images_.pop_front();
+                }
+                if (pending_ && same_frame(pending_->header, image->header)) {
+                    auto detection = pending_;
+                    pending_.reset();
+                    measure(*detection, image);
+                }
+            });
+        aruco_detection_sub = create_subscription<Detection>(
+            "/aruco_detections", 10, [this](Detection::ConstSharedPtr detection) {
+                const auto image = std::find_if(images_.rbegin(), images_.rend(),
+                    [&detection](const auto & frame) {
+                        return same_frame(detection->header, frame->header);
+                    });
+                if (image == images_.rend()) {
+                    pending_ = detection;
+                    return;
+                }
+                pending_.reset();
+                measure(*detection, *image);
+            });
+        target_sub_ = create_subscription<std_msgs::msg::UInt16>(
+            "/target_marker_id", rclcpp::QoS(1).transient_local().reliable(),
+            [this](std_msgs::msg::UInt16::ConstSharedPtr message) {
+                target_id_ = message->data;
+                pending_.reset();
+            });
+        reached_sub_ = create_subscription<Errors>(
+            "/marker_reached", 10,
+            [this](Errors::ConstSharedPtr message) { publish_image(*message); });
         // PARAMETERS
-        this->declare_parameter<double>("marker_side", 0.2);
-        this->declare_parameter<double>("target_side_px", 166.0);
+        L = declare_parameter("marker_side", 0.2);
+        sd = declare_parameter("target_side_px", 166.0);
+        reference_fx_ = declare_parameter("reference_fx_px", 0.0);
+        if (!std::isfinite(reference_fx_) || reference_fx_ < 0.0) {
+            throw std::invalid_argument("reference_fx_px must be finite and non-negative");
+        }
 
-        L = this->get_parameter("marker_side").as_double();
-        sd = this->get_parameter("target_side_px").as_double();
-
-        // VARIABLES 
-        id_to_reach = 1;
-        flag = true;
-        fx = 0.0;
-        fy = 0.0;
-        cx = 0.0;
-        cy = 0.0;
-        s = 0.0;
-
-        RCLCPP_INFO(this->get_logger(), "Perception node started!");
     }
 
 private:
 
+    using Detection = aruco_opencv_msgs::msg::ArucoDetection;
+    using Errors = robot_interfaces::msg::ErrorsMsg;
+    using Image = sensor_msgs::msg::Image;
 
-    void aruco_detect_callback(const aruco_opencv_msgs::msg::ArucoDetection::SharedPtr msg) {
-        
-        if (msg->markers.empty() || fx == 0.0) {
+    struct Observation {
+        Errors errors;
+        Image::ConstSharedPtr image;
+        double u;
+        double v;
+        double side;
+    };
+
+    static bool same_frame(const std_msgs::msg::Header & a, const std_msgs::msg::Header & b) {
+        return a.stamp == b.stamp && a.frame_id == b.frame_id;
+    }
+
+    void measure(const Detection & detection, const Image::ConstSharedPtr & image) {
+        if (target_id_ == 0) {
             return;
         }
 
-        int marker_id = 0;
-        double x = NULL;
-        double y = NULL;
-        double z = NULL;
-
-        for(int i = 0; i < 3; i++){
-            if(id_to_reach == msg->markers[i].marker_id){
-                x = msg->markers[i].pose.position.x;
-                y = msg->markers[i].pose.position.y;
-                z = msg->markers[i].pose.position.z;
-                marker_id = msg->markers[i].marker_id;
-            }
-        }
-
-        //RCLCPP_INFO(this->get_logger(), "marker_id detected: %d", marker_id);
-        //RCLCPP_INFO(this->get_logger(), "idx to reach: %d", id_to_reach);
-        if (x != NULL){
-            if (z <= 0.0) {
-                return;
-            }
-
-            s = fx * L / z;
-
-            sensor_msgs::msg::Image circle_image;
-
-            int u = static_cast<int>(fx * x / z + cx);   // centro del marker, in pixel
-            int v = static_cast<int>(fy * y / z + cy);
-            int r = static_cast<int>(std::ceil(s * 0.7071));
-
-            errors.side_err.data = sd - s;
-            errors.misalignment_err.data = u - cx;
-
-            if(errors.side_err.data <= 1.0 && flag == true){
-
-                cv::circle(cv_ptr->image, cv::Point(u, v), r, cv::Scalar(0, 255, 0), 3);
-
-                cv::putText(cv_ptr->image, "id " + std::to_string(marker_id), cv::Point(u - r, v - r - 10), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0),2);
-            
-                circle_image = *cv_ptr->toImageMsg();
-                circle_pub->publish(circle_image);
-
-                marker_msg.id = marker_id;
-                marker_msg.circle_image = circle_image;
-                marker_img_pub->publish(marker_msg);
-                id_to_reach++;
-                flag = false;
-
-            } else if(errors.side_err.data > 1.0 && flag == false){
-                flag = true;
-            }
-
+        Errors errors;
+        errors.header = detection.header;
+        errors.marker_id = target_id_;
+        const auto marker = std::find_if(detection.markers.begin(), detection.markers.end(),
+            [this](const auto & candidate) { return candidate.marker_id == target_id_; });
+        if (marker == detection.markers.end() || !camera_info_) {
             errors_pub->publish(errors);
-
-        }else{
-            errors.side_err.data = 10;
-            errors.misalignment_err.data = 0;
+            return;
         }
+
+        const auto & p = marker->pose.position;
+        const auto & k = camera_info_->k;
+        if (!(p.z > 0.0 && k[0] > 0.0 && k[4] > 0.0)) {
+            errors_pub->publish(errors);
+            return;
+        }
+
+        const auto u = k[0] * p.x / p.z + k[2];
+        const auto v = k[4] * p.y / p.z + k[5];
+        const auto side = k[0] * L / p.z;
+        if (!(std::isfinite(u) && std::isfinite(v) && std::isfinite(side) && side > 0.0 &&
+              u >= 0.0 && u < image->width && v >= 0.0 && v < image->height &&
+              side <= 2.0 * std::max(image->width, image->height))) {
+            errors_pub->publish(errors);
+            return;
+        }
+
+        const auto target_side = reference_fx_ > 0.0 ? sd * k[0] / reference_fx_ : sd;
+        errors.side_err.data = target_side - side;
+        errors.misalignment_err.data = u - k[2];
+        errors.valid = std::isfinite(errors.side_err.data) &&
+            std::isfinite(errors.misalignment_err.data);
+        if (errors.valid) {
+            observations_.push_back({errors, image, u, v, side});
+            if (observations_.size() > cache_size) {
+                observations_.pop_front();
+            }
+        }
+        errors_pub->publish(errors);
     }
 
-    // CAMERA INFO CALLBACK
-    void camera_info_callback(const sensor_msgs::msg::CameraInfo::SharedPtr msg) {
-        fx = msg->k[0];
-        cx = msg->k[2];
-        fy = msg->k[4];
-        cy = msg->k[5];
+    void publish_image(const Errors & reached) {
+        const auto found = std::find_if(observations_.begin(), observations_.end(),
+            [&reached](const auto & observation) {
+                return observation.errors.marker_id == reached.marker_id &&
+                    same_frame(observation.errors.header, reached.header);
+            });
+        if (found == observations_.end()) {
+            RCLCPP_WARN(get_logger(), "Frame for reached marker %u is unavailable",
+                static_cast<unsigned int>(reached.marker_id));
+            return;
+        }
+
+        try {
+            auto annotated = cv_bridge::toCvCopy(found->image, "bgr8");
+            const cv::Point center(cvRound(found->u), cvRound(found->v));
+            const int radius = static_cast<int>(std::ceil(found->side * std::sqrt(0.5)));
+            const cv::Scalar color(0, 255, 0);
+            cv::circle(annotated->image, center, radius, color, 3);
+            cv::putText(annotated->image, "id " + std::to_string(reached.marker_id),
+                center - cv::Point(radius, radius + 10), cv::FONT_HERSHEY_SIMPLEX,
+                1.0, color, 2);
+
+            const auto message = annotated->toImageMsg();
+            marker_img_pub.publish(*message);
+            circle_pub->publish(*message);
+        } catch (const cv_bridge::Exception & exception) {
+            RCLCPP_WARN(get_logger(), "Could not convert marker image: %s", exception.what());
+        }
+        observations_.erase(found);
     }
 
-    // IMAGE CALLBACK
-    void image_info_callback(const sensor_msgs::msg::Image::SharedPtr img_msg) {
-        cv_ptr = cv_bridge::toCvCopy(img_msg, "bgr8");
-    }
-
+    static constexpr std::size_t cache_size = 24;
     // PUBLISHERS
-    rclcpp::Publisher<robot_interfaces::msg::MarkerImage>::SharedPtr marker_img_pub;
-    rclcpp::Publisher<robot_interfaces::msg::ErrorsMsg>::SharedPtr errors_pub;
-    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr circle_pub;
+    image_transport::Publisher marker_img_pub;
+    rclcpp::Publisher<Image>::SharedPtr circle_pub;
+    rclcpp::Publisher<Errors>::SharedPtr errors_pub;
 
     // SUBSCRIBERS
-    rclcpp::Subscription<aruco_opencv_msgs::msg::ArucoDetection>::SharedPtr aruco_detection_sub;
     rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info_sub;
-    rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_info_sub;
+    rclcpp::Subscription<Image>::SharedPtr image_info_sub;
+    rclcpp::Subscription<Detection>::SharedPtr aruco_detection_sub;
+    rclcpp::Subscription<std_msgs::msg::UInt16>::SharedPtr target_sub_;
+    rclcpp::Subscription<Errors>::SharedPtr reached_sub_;
 
     // PARAMETERS
-    double sd;
     double L;
+    double sd;
+    double reference_fx_;
 
     // VARIABLES
-    robot_interfaces::msg::MarkerImage marker_msg;
-    robot_interfaces::msg::ErrorsMsg errors;
-    cv_bridge::CvImagePtr cv_ptr;
-    int id_to_reach;
-    bool flag;
-    double fx;
-    double fy;
-    double cx;
-    double cy;
-    double s;
+    std::uint16_t target_id_ = 0;
+    sensor_msgs::msg::CameraInfo::ConstSharedPtr camera_info_;
+    Detection::ConstSharedPtr pending_;
+    std::deque<Image::ConstSharedPtr> images_;
+    std::deque<Observation> observations_;
 
 };
-
 
 int main(int argc, char * argv[]) {
 
