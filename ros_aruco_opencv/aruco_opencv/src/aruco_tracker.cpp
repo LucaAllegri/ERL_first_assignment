@@ -155,7 +155,7 @@ public:
     std::string cam_info_topic = image_transport::getCameraInfoTopic(image_topic);
 
     cam_info_sub_ = create_subscription<sensor_msgs::msg::CameraInfo>(
-      cam_info_topic, 1,
+      cam_info_topic, rclcpp::SensorDataQoS().keep_last(1),
       std::bind(&ArucoTracker::callback_camera_info, this, std::placeholders::_1));
 
     rmw_qos_profile_t image_sub_qos = rmw_qos_profile_default;

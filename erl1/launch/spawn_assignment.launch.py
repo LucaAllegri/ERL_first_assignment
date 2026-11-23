@@ -83,7 +83,7 @@ def generate_launch_description():
         name='robot_state_publisher',
         output='screen',
         parameters=[
-            {'robot_description': Command(['xacro', ' ', urdf_file_path]),
+            {'robot_description': Command(['xacro "', urdf_file_path, '"']),
              'use_sim_time': True},
         ],
         remappings=[
