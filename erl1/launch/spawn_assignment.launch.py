@@ -123,17 +123,19 @@ def generate_launch_description():
     )
 
 
+    config_file_arg = DeclareLaunchArgument(
+        'params_file',
+        default_value='sim_params.yaml',
+    )
+
+    params_path = PathJoinSubstitution([pkg_erl1, 'config', LaunchConfiguration('params_file')])
+
     perception_node = Node(
         package='robot_controller',
         executable='perception_node',
         name='perception_node',
         output='screen',
-        parameters=[
-            {
-                'use_sim_time': True,
-                'target_side_px': 166.0,
-            },
-        ],
+        parameters=[params_path]
     )
 
     motion_node = Node(
@@ -142,14 +144,9 @@ def generate_launch_description():
         name='robot_motion',
         output='screen',
         parameters=[
-            aruco_cfg,                       # cam_base_topic, marker_dict, marker_size
-            {
-                'use_sim_time': True,
-                'k_v': 0.005,
-                'k_w': 0.001,
-                'k_a': 0.3
-            },
-        ],
+            params_path,
+            aruco_cfg,
+            ]
     )
 
     delayed_motion_node = TimerAction(
@@ -223,6 +220,7 @@ def generate_launch_description():
     launchDescriptionObject.add_action(gz_bridge_node)
     launchDescriptionObject.add_action(gz_image_bridge_node)
     launchDescriptionObject.add_action(ekf_node)
+    launchDescriptionObject.add_action(config_file_arg)
 
     #launchDescriptionObject.add_action(aruco_launch)
     launchDescriptionObject.add_action(aruco_node)

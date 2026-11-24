@@ -21,25 +21,43 @@ public:
 
     PerceptionNode() : Node("perception_node") {
 
-        // PUBLISHERS
-        marker_img_pub = this->create_publisher<robot_interfaces::msg::MarkerImage>("/marker_image", 10);
-        circle_pub = this->create_publisher<sensor_msgs::msg::Image>("/circle_pub_topic", 10);   //circle_pub_topic
-        errors_pub = this->create_publisher<robot_interfaces::msg::ErrorsMsg>("/errors_topic", 10);
+        // PARAMETERS DECLARATION
+        this->declare_parameter<std::string>("marker_image_topic", "/marker_image");
+        this->declare_parameter<std::string>("circle_image_topic", "/circle_pub_topic");
+        this->declare_parameter<std::string>("errors_topic", "/errors_topic");
+        this->declare_parameter<std::string>("aruco_detections_topic", "/aruco_detections");
+        this->declare_parameter<std::string>("camera_info_topic", "/camera/camera_info");
+        this->declare_parameter<std::string>("camera_image_topic", "/camera/image");
 
-        // SUBSCRIBERS
-        aruco_detection_sub = this->create_subscription<aruco_opencv_msgs::msg::ArucoDetection>("/aruco_detections", 10,std::bind(&PerceptionNode::aruco_detect_callback, this, _1));
-        camera_info_sub = this->create_subscription<sensor_msgs::msg::CameraInfo>("/camera/camera_info", 10,std::bind(&PerceptionNode::camera_info_callback, this, _1));
-        image_info_sub = this->create_subscription<sensor_msgs::msg::Image>("/camera/image", 10,std::bind(&PerceptionNode::image_info_callback, this, _1));
-
-        // PARAMETERS
         this->declare_parameter<double>("marker_side", 0.2);
         this->declare_parameter<double>("target_side_px", 166.0);
 
-        L = this->get_parameter("marker_side").as_double();
+        // PARAMETERS
+        std::string marker_img_topic = this->get_parameter("marker_image_topic").as_string();
+        std::string circle_img_topic = this->get_parameter("circle_image_topic").as_string();
+        std::string err_topic        = this->get_parameter("errors_topic").as_string();
+        std::string aruco_topic      = this->get_parameter("aruco_detections_topic").as_string();
+        std::string cam_info_topic   = this->get_parameter("camera_info_topic").as_string();
+        std::string cam_img_topic    = this->get_parameter("camera_image_topic").as_string();
+
+        L  = this->get_parameter("marker_side").as_double();
         sd = this->get_parameter("target_side_px").as_double();
+
+        // PUBLISHERS
+        marker_img_pub = this->create_publisher<robot_interfaces::msg::MarkerImage>(marker_img_topic, 10);
+        circle_pub     = this->create_publisher<sensor_msgs::msg::Image>(circle_img_topic, 10);
+        errors_pub     = this->create_publisher<robot_interfaces::msg::ErrorsMsg>(err_topic, 10);
+
+        // SUBSCRIBERS
+        aruco_detection_sub = this->create_subscription<aruco_opencv_msgs::msg::ArucoDetection>(aruco_topic, 10, std::bind(&PerceptionNode::aruco_detect_callback, this, _1));
+        camera_info_sub = this->create_subscription<sensor_msgs::msg::CameraInfo>(cam_info_topic, 10, std::bind(&PerceptionNode::camera_info_callback, this, _1));
+        image_info_sub = this->create_subscription<sensor_msgs::msg::Image>(cam_img_topic, 10, std::bind(&PerceptionNode::image_info_callback, this, _1));
+        //image_info_sub = this->create_subscription<sensor_msgs::msg::Image>("/", 10, std::bind(&PerceptionNode::image_info_callback, this, _1));
+
 
         // VARIABLES 
         id_to_reach = 1;
+        found = false;
         flag = true;
         fx = 0.0;
         fy = 0.0;
@@ -48,34 +66,39 @@ public:
         s = 0.0;
 
         RCLCPP_INFO(this->get_logger(), "Perception node started!");
+        RCLCPP_INFO(this->get_logger(), "%s", cam_img_topic.c_str());
+
     }
 
 private:
 
-
     void aruco_detect_callback(const aruco_opencv_msgs::msg::ArucoDetection::SharedPtr msg) {
         
+        RCLCPP_INFO(this->get_logger(), "A");
         if (msg->markers.empty() || fx == 0.0) {
             return;
         }
 
         int marker_id = 0;
-        double x = NULL;
-        double y = NULL;
-        double z = NULL;
+        found = false;
+        double x = 0;
+        double y = 0;
+        double z = 0;
 
-        for(int i = 0; i < 3; i++){
+        for(size_t i = 0; i < msg->markers.size(); i++){
             if(id_to_reach == msg->markers[i].marker_id){
                 x = msg->markers[i].pose.position.x;
                 y = msg->markers[i].pose.position.y;
                 z = msg->markers[i].pose.position.z;
                 marker_id = msg->markers[i].marker_id;
+                found = true;
             }
         }
 
-        //RCLCPP_INFO(this->get_logger(), "marker_id detected: %d", marker_id);
+        RCLCPP_INFO(this->get_logger(), "marker_id detected: %d", marker_id);
         //RCLCPP_INFO(this->get_logger(), "idx to reach: %d", id_to_reach);
-        if (x != NULL){
+        if(found){
+            RCLCPP_INFO(this->get_logger(), "B");
             if (z <= 0.0) {
                 return;
             }
@@ -90,6 +113,9 @@ private:
 
             errors.side_err.data = sd - s;
             errors.misalignment_err.data = u - cx;
+            
+            RCLCPP_INFO(this->get_logger(), "side %.1f", errors.side_err.data);
+            RCLCPP_INFO(this->get_logger(), "mis %.1f", errors.misalignment_err.data);
 
             if(errors.side_err.data <= 1.0 && flag == true){
 
@@ -106,16 +132,20 @@ private:
                 id_to_reach++;
                 flag = false;
 
+                RCLCPP_INFO(this->get_logger(), "C");
+
             } else if(errors.side_err.data > 1.0 && flag == false){
                 flag = true;
             }
 
-            errors_pub->publish(errors);
-
         }else{
             errors.side_err.data = 10;
             errors.misalignment_err.data = 0;
+
+            RCLCPP_INFO(this->get_logger(), "D");
         }
+        errors_pub->publish(errors);
+        RCLCPP_INFO(this->get_logger(), "E");
     }
 
     // CAMERA INFO CALLBACK
@@ -151,12 +181,12 @@ private:
     cv_bridge::CvImagePtr cv_ptr;
     int id_to_reach;
     bool flag;
+    bool found;
     double fx;
     double fy;
     double cx;
     double cy;
     double s;
-
 };
 
 

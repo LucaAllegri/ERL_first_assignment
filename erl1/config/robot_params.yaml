@@ -1,0 +1,22 @@
+perception_node:
+  ros__parameters:
+    use_sim_time: false
+    marker_side: 0.2
+    target_side_px: 166.0
+    camera_image_topic: "/rosbot_3/camera/rgb/image_raw"
+    camera_info_topic: "/rosbot_3/camera/rgb/camera_info"
+    aruco_detections_topic: "/aruco_detections"
+    marker_image_topic: "/marker_image"
+    circle_image_topic: "/circle_pub_topic"
+    errors_topic: "/errors_topic"
+
+robot_motion:
+  ros__parameters:
+    use_sim_time: false
+    k_v: 0.0001
+    k_w: 0.001
+    k_a: 0.4
+    cmd_vel_topic: "/rosbot_3/cmd_vel"
+    odom_topic: "/rosbot_3/odom"
+    marker_image_topic: "/marker_image"
+    errors_topic: "/errors_topic"

@@ -14,41 +14,53 @@ using std::placeholders::_1;
 using namespace std::chrono_literals;
 
 enum class State {
-    APPROACH,        // Visual servoing: si allinea e si ferma a 166 px
-    TURN,            // Rotazione ad anello chiuso (90° dx, 180°, 90° sx)
-    TREASUREFOUND   // Marker 4 raggiunto: stop definitivo
+    APPROACH,        
+    TURN,            
+    TREASUREFOUND   
 };
 
 class RobotMotion : public rclcpp::Node {
 
 public:
 
-    RobotMotion() : Node("motion") {
+    RobotMotion() : Node("robot_motion") {
 
-        // PUBLISHERS
-        cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
+        // PARAMETERS DECLARATION
+        this->declare_parameter<std::string>("cmd_vel_topic", "/cmd_vel");
+        this->declare_parameter<std::string>("marker_image_topic", "/marker_image");
+        this->declare_parameter<std::string>("errors_topic", "/errors_topic");
+        this->declare_parameter<std::string>("odom_topic", "/odom");
 
-        // SUBSCRIBERS
-        marker_img_sub = this->create_subscription<robot_interfaces::msg::MarkerImage>("/marker_image", 10, std::bind(&RobotMotion::marker_img_callback, this, _1));
-        errors_sub = this->create_subscription<robot_interfaces::msg::ErrorsMsg>("/errors_topic", 10, std::bind(&RobotMotion::errors_callback, this, _1));
-        odom_sub = this->create_subscription<nav_msgs::msg::Odometry>("/odom", 10, std::bind(&RobotMotion::odom_callback, this, _1));
-
-        // TIMERS
-        timer_ = this->create_wall_timer(std::chrono::milliseconds(100), std::bind(&RobotMotion::control_loop, this));
-
-        // PARAMETERS
         this->declare_parameter<double>("k_v", 0.002);
         this->declare_parameter<double>("k_w", 0.001);
         this->declare_parameter<double>("k_a", 0.3);
+
+        // PARAMETERS
+        std::string cmd_vel_topic    = this->get_parameter("cmd_vel_topic").as_string();
+        std::string marker_img_topic = this->get_parameter("marker_image_topic").as_string();
+        std::string err_topic        = this->get_parameter("errors_topic").as_string();
+        std::string odom_topic       = this->get_parameter("odom_topic").as_string();
 
         k_v = this->get_parameter("k_v").as_double();
         k_w = this->get_parameter("k_w").as_double();
         k_a = this->get_parameter("k_a").as_double();
 
+        // PUBLISHERS
+        cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>(cmd_vel_topic, 10);
+
+        // SUBSCRIBERS
+        marker_img_sub = this->create_subscription<robot_interfaces::msg::MarkerImage>(marker_img_topic, 10, std::bind(&RobotMotion::marker_img_callback, this, _1));
+        errors_sub = this->create_subscription<robot_interfaces::msg::ErrorsMsg>(err_topic, 10, std::bind(&RobotMotion::errors_callback, this, _1));
+        odom_sub = this->create_subscription<nav_msgs::msg::Odometry>(odom_topic, 10, std::bind(&RobotMotion::odom_callback, this, _1));
+
+        timer_ = this->create_timer(100ms, std::bind(&RobotMotion::control_loop, this));
+
         // VARIABLES
         side_error.data = 200.0;  // random value for the start
 
-        RCLCPP_INFO(this->get_logger(), "Robot motion node started!");
+        RCLCPP_INFO(this->get_logger(), "%s", cmd_vel_topic.c_str());
+        RCLCPP_INFO(this->get_logger(), "%s", odom_topic.c_str());
+
     }
 
 private:
