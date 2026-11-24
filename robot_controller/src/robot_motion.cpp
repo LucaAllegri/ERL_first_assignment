@@ -31,8 +31,8 @@ public:
         this->declare_parameter<std::string>("errors_topic", "/errors_topic");
         this->declare_parameter<std::string>("odom_topic", "/odom");
 
-        this->declare_parameter<double>("k_v", 0.002);
-        this->declare_parameter<double>("k_w", 0.001);
+        this->declare_parameter<double>("k_v", 0.01);
+        this->declare_parameter<double>("k_w", 0.01);
         this->declare_parameter<double>("k_a", 0.3);
 
         // PARAMETERS
@@ -71,6 +71,8 @@ private:
 
         switch (current_state) {
 
+            //RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 500, "side %.1f", errors.side_err.data);
+
             case State::APPROACH:
                 
                 if (std::abs(side_error.data) > 1.0){
@@ -80,13 +82,13 @@ private:
                     
                     move_robot(vel);
 
-                    RCLCPP_INFO(this->get_logger(), "side_error %.1f", side_error.data);
+                    RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "side_error %.1f", side_error.data);
                 }else{
                     
                     vel.linear.x = 0.0;
                     vel.angular.z = 0.0;
                     move_robot(vel);
-                    RCLCPP_INFO(this->get_logger(), "robot stops");
+                    RCLCPP_INFO_THROTTLE(this->get_logger(),*this->get_clock(), 1000, "robot stops");
 
                     if(marker_id == 4){
                         current_state = State::TREASUREFOUND;
@@ -96,6 +98,8 @@ private:
                 }
 
                 initial_yaw = atan2(2*(q.w*q.z + q.x*q.y), 1 - 2*(q.y*q.y + q.z*q.z));
+
+                RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "initial_yaw %.1f", initial_yaw);
 
                 break;
 
@@ -110,7 +114,7 @@ private:
                 vel.linear.x = 0.0;     
                 vel.angular.z = k_a * ang_error;
 
-                RCLCPP_INFO(this->get_logger(), "robot is turning");
+                RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "robot is turning");
                 
                 move_robot(vel);
 
@@ -122,7 +126,7 @@ private:
             }
 
             case State::TREASUREFOUND:
-                RCLCPP_INFO(this->get_logger(), "TREASURE FOUND!!!!!!!!");
+                RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "TREASURE FOUND!!!!!!!!");
                 break;
         }
     }
@@ -136,14 +140,15 @@ private:
     }
 
     void move_robot(const geometry_msgs::msg::Twist vel){
-
+        //RCLCPP_INFO(this->get_logger(), "F");
         cmd_vel_pub_->publish(vel);
+        //RCLCPP_INFO(this->get_logger(), "G");
     }
 
     void marker_img_callback(const robot_interfaces::msg::MarkerImage::SharedPtr msg) {
 
         marker_id = msg->id;
-        RCLCPP_INFO(this->get_logger(), "id = %d", marker_id);
+        RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "id = %d", marker_id);
     }
 
     void odom_callback(const nav_msgs::msg::Odometry msg){
@@ -153,6 +158,11 @@ private:
         position[2] = msg.pose.pose.position.z;
 
         q = msg.pose.pose.orientation;
+
+        //RCLCPP_INFO(this->get_logger(), "qx%.1f", q.x);
+        //RCLCPP_INFO(this->get_logger(), "qy%.1f", q.y);
+        //RCLCPP_INFO(this->get_logger(), "qz%.1f", q.z);
+        //RCLCPP_INFO(this->get_logger(), "qw%.1f", q.w);
     }
 
     float angular_error(int id){
@@ -173,11 +183,11 @@ private:
 
         double target = delta + initial_yaw;
 
-        RCLCPP_INFO(this->get_logger(), "yaw %.1f", yaw);
+        RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "yaw %.1f", yaw);
 
         float err = atan2(sin(target - yaw), cos(target-yaw));
 
-        RCLCPP_INFO(this->get_logger(), "error: %.1f", err);
+        RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "error: %.1f", err);
         
         return err;
     }

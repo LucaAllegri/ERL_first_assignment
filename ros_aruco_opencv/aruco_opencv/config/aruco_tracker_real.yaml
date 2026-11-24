@@ -86,7 +86,7 @@
       # error correction rate respect to the maximun error correction capability for each dictionary
       errorCorrectionRate: 0.6
 
-      cornerRefinementMethod: 2 # 0 - None, 1 - Subpix, 2 - Contour
+      cornerRefinementMethod: 1 # 0 - None, 1 - Subpix, 2 - Contour
 
       # maximum window size for the corner refinement process (in pixels)
       cornerRefinementWinSize: 5

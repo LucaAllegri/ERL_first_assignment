@@ -74,7 +74,8 @@ private:
 
     void aruco_detect_callback(const aruco_opencv_msgs::msg::ArucoDetection::SharedPtr msg) {
         
-        RCLCPP_INFO(this->get_logger(), "A");
+        RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "Ciao sono una callbakc che funziona");
+
         if (msg->markers.empty() || fx == 0.0) {
             return;
         }
@@ -95,10 +96,11 @@ private:
             }
         }
 
-        RCLCPP_INFO(this->get_logger(), "marker_id detected: %d", marker_id);
-        //RCLCPP_INFO(this->get_logger(), "idx to reach: %d", id_to_reach);
+        RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 500, "marker_id detected: %d", marker_id);
+        
         if(found){
-            RCLCPP_INFO(this->get_logger(), "B");
+
+            //RCLCPP_INFO(this->get_logger(), "B");
             if (z <= 0.0) {
                 return;
             }
@@ -114,8 +116,8 @@ private:
             errors.side_err.data = sd - s;
             errors.misalignment_err.data = u - cx;
             
-            RCLCPP_INFO(this->get_logger(), "side %.1f", errors.side_err.data);
-            RCLCPP_INFO(this->get_logger(), "mis %.1f", errors.misalignment_err.data);
+            RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 500, "side %.1f", errors.side_err.data);
+            RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 500, "mis %.1f", errors.misalignment_err.data);
 
             if(errors.side_err.data <= 1.0 && flag == true){
 
@@ -132,7 +134,6 @@ private:
                 id_to_reach++;
                 flag = false;
 
-                RCLCPP_INFO(this->get_logger(), "C");
 
             } else if(errors.side_err.data > 1.0 && flag == false){
                 flag = true;
@@ -142,10 +143,10 @@ private:
             errors.side_err.data = 10;
             errors.misalignment_err.data = 0;
 
-            RCLCPP_INFO(this->get_logger(), "D");
+     
         }
         errors_pub->publish(errors);
-        RCLCPP_INFO(this->get_logger(), "E");
+ 
     }
 
     // CAMERA INFO CALLBACK
