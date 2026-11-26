@@ -237,7 +237,9 @@ After 8 s the `robot_motion` node starts and the robot begins to search for mark
 
 # 9. HOW TO RUN ON THE REAL ROBOT
 
-(video)
+<div align="center">
+  <img src="/image_readme/Real_Video.gif" alt="Real Robot" width="700"/>
+</div>
 
 After connecting to the ROSbot (same `ROS_DOMAIN_ID`, camera topics visible with `ros2 topic list`):
 
