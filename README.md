@@ -29,7 +29,7 @@ When the marker with ID 4 is reached, the treasure is found and the robot stops.
 | Execution | Gazebo/RViz simulation and physical ROSbot |
 
 <div align="center">
-  <img src="/image_readme/robot_hunt.gif" alt="Treasure hunt" width="500"/>
+  <img src="/image_readme/Screenshot_rosbot.png" alt="" width="500"/>
 </div>
 
 ---
@@ -203,11 +203,15 @@ On the real robot the marker ID is also exchanged through a dedicated topic `/id
 
 # 7. TF2 FRAME STRUCTURE
 
----
+<div align="center">
+  <img src="/image_readme/tree_frames.gif" alt="Frames's Tree" width="500"/>
+</div>
 
 # 8. HOW TO RUN THE SIMULATION
 
-(video)
+<div align="center">
+  <img src="/image_readme/Sim_Video.gif" alt="On Simulation" width="500"/>
+</div>
 
 First, build the workspace:
 

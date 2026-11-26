@@ -120,7 +120,6 @@ private:
                 vel.linear.x = 0.0;     
                 vel.angular.z = k_a * ang_error;
 
-                
                 move_robot(vel);
 
                 if( abs(ang_error) < 0.05){
@@ -226,8 +225,8 @@ private:
     rclcpp::Subscription<robot_interfaces::msg::MarkerImage>::SharedPtr marker_img_sub;
     rclcpp::Subscription<robot_interfaces::msg::ErrorsMsg>::SharedPtr errors_sub;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub;
+    //DELETE COMMENT FOR REAL LIFE ROBOT
     //rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr id_sub;
-
 
     // PARAMETERS
     double k_v;

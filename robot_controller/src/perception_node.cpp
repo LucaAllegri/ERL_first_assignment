@@ -46,14 +46,14 @@ public:
         sd = this->get_parameter("target_side_px").as_double();
 
 
-        // // PUBLISHERS
+        // PUBLISHERS
         marker_img_pub = this->create_publisher<robot_interfaces::msg::MarkerImage>(marker_img_topic, 10);
         circle_pub     = this->create_publisher<sensor_msgs::msg::Image>(circle_img_topic, 10);
         errors_pub     = this->create_publisher<robot_interfaces::msg::ErrorsMsg>(err_topic, 10);
         id_pub         = this->create_publisher<std_msgs::msg::Int32>("/id_topic", 10);
 
 
-        // // SUBSCRIBERS
+        // SUBSCRIBERS
         auto latest_only_qos = rclcpp::QoS(rclcpp::KeepLast(1)).best_effort();
 
         aruco_detection_sub = this->create_subscription<aruco_opencv_msgs::msg::ArucoDetection>(aruco_topic, latest_only_qos, std::bind(&PerceptionNode::aruco_detect_callback, this, _1));
@@ -122,7 +122,7 @@ private:
 
             if (errors.side_err.data <= 1.0 && flag == true) {
 
-                 RCLCPP_INFO(this->get_logger(), "STEP 1: entered checkpoint");
+                RCLCPP_INFO(this->get_logger(), "STEP 1: entered checkpoint");
 
                 if (cv_ptr == nullptr || cv_ptr->image.empty()) {
                     RCLCPP_ERROR(this->get_logger(), "Invalid image pointer or empty image");
@@ -130,25 +130,11 @@ private:
                 }
 
 
-                cv::circle(
-                    cv_ptr->image,
-                    cv::Point(u, v),
-                    r,
-                    cv::Scalar(0, 255, 0),
-                    3
-                );
+                cv::circle(cv_ptr->image,cv::Point(u, v),r,cv::Scalar(0, 255, 0),3);
 
                 RCLCPP_INFO(this->get_logger(), "STEP 2: circle drawn");
 
-                cv::putText(
-                    cv_ptr->image,
-                    "id " + std::to_string(marker_id),
-                    cv::Point(u-r, v-r-10),
-                    cv::FONT_HERSHEY_SIMPLEX,
-                    1.0,
-                    cv::Scalar(0, 255, 0),
-                    2
-                );
+                cv::putText(cv_ptr->image,"id " + std::to_string(marker_id),cv::Point(u-r, v-r-10),cv::FONT_HERSHEY_SIMPLEX,1.0,cv::Scalar(0, 255, 0),2);
 
                 RCLCPP_INFO(this->get_logger(), "STEP 3: text drawn");
 
@@ -176,6 +162,7 @@ private:
 
                 id_to_reach++;
                 flag = false;
+
             } else if(errors.side_err.data > 1.0 && flag == false){
                 flag = true;
             }
@@ -186,7 +173,6 @@ private:
         }
 
         errors_pub->publish(errors);
-        
  
     }
 
