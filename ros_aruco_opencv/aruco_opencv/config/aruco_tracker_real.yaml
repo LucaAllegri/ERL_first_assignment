@@ -6,7 +6,7 @@
     marker_dict: ARUCO_ORIGINAL
 
     image_is_rectified: false
-    image_sub_compressed: false
+    image_sub_compressed: true
     image_sub_qos:
       reliability: 2 # 0 - system default, 1 - reliable, 2 - best effort
       durability: 2 # 0 - system default, 1 - transient local, 2 - volatile

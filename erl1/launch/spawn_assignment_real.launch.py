@@ -13,10 +13,9 @@ def generate_launch_description():
     pkg_aruco = get_package_share_directory('aruco_opencv')
     aruco_cfg = os.path.join(pkg_aruco, 'config', 'aruco_tracker_real.yaml')
 
-    # Argomenti di lancio
     rviz_launch_arg = DeclareLaunchArgument(
         'rviz',
-        default_value='true',  # Su robot reale di solito si tiene false per risparmiare risorse
+        default_value='true',  
         description='Open RViz.'
     )
 
@@ -28,7 +27,7 @@ def generate_launch_description():
 
     config_file_arg = DeclareLaunchArgument(
         'params_file',
-        default_value='robot_params.yaml',  # Cambiato rispetto a sim_params.yaml (puoi rimettere il tuo se usi lo stesso)
+        default_value='robot_params.yaml', 
         description='Parameter file for real robot'
     )
 
@@ -96,7 +95,7 @@ def generate_launch_description():
         ]
     )
 
-    # Motion Node (avviato con ritardo)
+    # Motion Node 
     motion_node = Node(
         package='robot_controller',
         executable='robot_motion',
@@ -110,11 +109,10 @@ def generate_launch_description():
     )
 
     delayed_motion_node = TimerAction(
-        period=5.0,  # Ridotto leggermente rispetto alla simulazione (non c'è Gazebo da aspettare)
+        period=5.0, 
         actions=[motion_node]
     )
 
-    # Costruzione LaunchDescription
     ld = LaunchDescription()
 
     ld.add_action(rviz_launch_arg)

@@ -22,6 +22,7 @@ if(BUILD_TESTING)
   find_package(std_msgs REQUIRED)
   find_package(nav_msgs REQUIRED)
   
+  
 
   add_executable(robot_motion src/robot_motion.cpp)
   add_executable(perception_node src/perception_node.cpp)

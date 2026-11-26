@@ -9,8 +9,10 @@
 #include "aruco_opencv_msgs/msg/aruco_detection.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
 #include "sensor_msgs/msg/image.hpp"
+#include "sensor_msgs/msg/compressed_image.hpp"
 #include "cv_bridge/cv_bridge.hpp"
 #include "std_msgs/msg/float64.hpp"
+#include "std_msgs/msg/int32.hpp"
 
 using std::placeholders::_1;
 using namespace std::chrono_literals;
@@ -26,8 +28,8 @@ public:
         this->declare_parameter<std::string>("circle_image_topic", "/circle_pub_topic");
         this->declare_parameter<std::string>("errors_topic", "/errors_topic");
         this->declare_parameter<std::string>("aruco_detections_topic", "/aruco_detections");
-        this->declare_parameter<std::string>("camera_info_topic", "/camera/camera_info");
-        this->declare_parameter<std::string>("camera_image_topic", "/camera/image");
+        this->declare_parameter<std::string>("camera_info_topic", "/rosbot_1/camera/rgb/camera_info");
+        this->declare_parameter<std::string>("camera_image_topic", "/rosbot_1/camera/rgb/image_raw");
 
         this->declare_parameter<double>("marker_side", 0.2);
         this->declare_parameter<double>("target_side_px", 166.0);
@@ -43,27 +45,31 @@ public:
         L  = this->get_parameter("marker_side").as_double();
         sd = this->get_parameter("target_side_px").as_double();
 
-        // PUBLISHERS
+
+        // // PUBLISHERS
         marker_img_pub = this->create_publisher<robot_interfaces::msg::MarkerImage>(marker_img_topic, 10);
         circle_pub     = this->create_publisher<sensor_msgs::msg::Image>(circle_img_topic, 10);
         errors_pub     = this->create_publisher<robot_interfaces::msg::ErrorsMsg>(err_topic, 10);
+        id_pub         = this->create_publisher<std_msgs::msg::Int32>("/id_topic", 10);
 
-        // SUBSCRIBERS
-        aruco_detection_sub = this->create_subscription<aruco_opencv_msgs::msg::ArucoDetection>(aruco_topic, 10, std::bind(&PerceptionNode::aruco_detect_callback, this, _1));
+
+        // // SUBSCRIBERS
+        auto latest_only_qos = rclcpp::QoS(rclcpp::KeepLast(1)).best_effort();
+
+        aruco_detection_sub = this->create_subscription<aruco_opencv_msgs::msg::ArucoDetection>(aruco_topic, latest_only_qos, std::bind(&PerceptionNode::aruco_detect_callback, this, _1));
         camera_info_sub = this->create_subscription<sensor_msgs::msg::CameraInfo>(cam_info_topic, 10, std::bind(&PerceptionNode::camera_info_callback, this, _1));
-        image_info_sub = this->create_subscription<sensor_msgs::msg::Image>(cam_img_topic, 10, std::bind(&PerceptionNode::image_info_callback, this, _1));
-        //image_info_sub = this->create_subscription<sensor_msgs::msg::Image>("/", 10, std::bind(&PerceptionNode::image_info_callback, this, _1));
+        image_info_sub = this->create_subscription<sensor_msgs::msg::Image>(cam_img_topic, latest_only_qos, std::bind(&PerceptionNode::image_info_callback, this, _1));
 
 
-        // VARIABLES 
+        // // VARIABLES 
         id_to_reach = 1;
         found = false;
         flag = true;
-        fx = 0.0;
-        fy = 0.0;
-        cx = 0.0;
-        cy = 0.0;
-        s = 0.0;
+        fx = 288.02;
+        fy = 159.5;
+        cx = 288.02;
+        cy = 119.5;
+        s = 1.0;
 
         RCLCPP_INFO(this->get_logger(), "Perception node started!");
         RCLCPP_INFO(this->get_logger(), "%s", cam_img_topic.c_str());
@@ -74,8 +80,6 @@ private:
 
     void aruco_detect_callback(const aruco_opencv_msgs::msg::ArucoDetection::SharedPtr msg) {
         
-        RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "Ciao sono una callbakc che funziona");
-
         if (msg->markers.empty() || fx == 0.0) {
             return;
         }
@@ -100,7 +104,6 @@ private:
         
         if(found){
 
-            //RCLCPP_INFO(this->get_logger(), "B");
             if (z <= 0.0) {
                 return;
             }
@@ -109,43 +112,81 @@ private:
 
             sensor_msgs::msg::Image circle_image;
 
-            int u = static_cast<int>(fx * x / z + cx);   // centro del marker, in pixel
+            int u = static_cast<int>(fx * x / z + cx); 
             int v = static_cast<int>(fy * y / z + cy);
             int r = static_cast<int>(std::ceil(s * 0.7071));
 
             errors.side_err.data = sd - s;
             errors.misalignment_err.data = u - cx;
-            
-            RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 500, "side %.1f", errors.side_err.data);
-            RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 500, "mis %.1f", errors.misalignment_err.data);
 
-            if(errors.side_err.data <= 1.0 && flag == true){
 
-                cv::circle(cv_ptr->image, cv::Point(u, v), r, cv::Scalar(0, 255, 0), 3);
+            if (errors.side_err.data <= 1.0 && flag == true) {
 
-                cv::putText(cv_ptr->image, "id " + std::to_string(marker_id), cv::Point(u - r, v - r - 10), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0),2);
-            
+                 RCLCPP_INFO(this->get_logger(), "STEP 1: entered checkpoint");
+
+                if (cv_ptr == nullptr || cv_ptr->image.empty()) {
+                    RCLCPP_ERROR(this->get_logger(), "Invalid image pointer or empty image");
+                    return;
+                }
+
+
+                cv::circle(
+                    cv_ptr->image,
+                    cv::Point(u, v),
+                    r,
+                    cv::Scalar(0, 255, 0),
+                    3
+                );
+
+                RCLCPP_INFO(this->get_logger(), "STEP 2: circle drawn");
+
+                cv::putText(
+                    cv_ptr->image,
+                    "id " + std::to_string(marker_id),
+                    cv::Point(u-r, v-r-10),
+                    cv::FONT_HERSHEY_SIMPLEX,
+                    1.0,
+                    cv::Scalar(0, 255, 0),
+                    2
+                );
+
+                RCLCPP_INFO(this->get_logger(), "STEP 3: text drawn");
+
                 circle_image = *cv_ptr->toImageMsg();
+
+                RCLCPP_INFO(this->get_logger(), "STEP 4: image converted");
+
                 circle_pub->publish(circle_image);
+
+                RCLCPP_INFO(this->get_logger(), "STEP 5: circle image published");
 
                 marker_msg.id = marker_id;
                 marker_msg.circle_image = circle_image;
+
                 marker_img_pub->publish(marker_msg);
+
+                //DELETE COMMENT FOR REAL LIFE ROBOT (ID_PUBLISHER)
+                
+                // std_msgs::msg::Int32 msg;
+                // msg.data = marker_id;
+
+                // id_pub->publish(msg);
+
+                RCLCPP_INFO(this->get_logger(), "STEP 6: marker message published");
+
                 id_to_reach++;
                 flag = false;
-
-
             } else if(errors.side_err.data > 1.0 && flag == false){
                 flag = true;
             }
 
         }else{
-            errors.side_err.data = 10;
+            errors.side_err.data = -10;
             errors.misalignment_err.data = 0;
-
-     
         }
+
         errors_pub->publish(errors);
+        
  
     }
 
@@ -155,6 +196,8 @@ private:
         cx = msg->k[2];
         fy = msg->k[4];
         cy = msg->k[5];
+
+        camera_info_sub.reset();
     }
 
     // IMAGE CALLBACK
@@ -166,6 +209,7 @@ private:
     rclcpp::Publisher<robot_interfaces::msg::MarkerImage>::SharedPtr marker_img_pub;
     rclcpp::Publisher<robot_interfaces::msg::ErrorsMsg>::SharedPtr errors_pub;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr circle_pub;
+    rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr id_pub;
 
     // SUBSCRIBERS
     rclcpp::Subscription<aruco_opencv_msgs::msg::ArucoDetection>::SharedPtr aruco_detection_sub;
@@ -202,4 +246,4 @@ int main(int argc, char * argv[]) {
     rclcpp::shutdown();
 
     return 0;
-}
+} 

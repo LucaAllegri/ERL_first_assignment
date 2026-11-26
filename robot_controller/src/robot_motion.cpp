@@ -9,6 +9,7 @@
 #include "robot_interfaces/msg/errors_msg.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "geometry_msgs/msg/quaternion.hpp"
+#include "std_msgs/msg/int32.hpp"
 
 using std::placeholders::_1;
 using namespace std::chrono_literals;
@@ -52,6 +53,8 @@ public:
         marker_img_sub = this->create_subscription<robot_interfaces::msg::MarkerImage>(marker_img_topic, 10, std::bind(&RobotMotion::marker_img_callback, this, _1));
         errors_sub = this->create_subscription<robot_interfaces::msg::ErrorsMsg>(err_topic, 10, std::bind(&RobotMotion::errors_callback, this, _1));
         odom_sub = this->create_subscription<nav_msgs::msg::Odometry>(odom_topic, 10, std::bind(&RobotMotion::odom_callback, this, _1));
+        //DELETE COMMENT FOR REAL LIFE ROBOT
+        //id_sub = this->create_subscription<std_msgs::msg::Int32>("/id_topic", 10, std::bind(&RobotMotion::id_callback, this, _1));
 
         timer_ = this->create_timer(100ms, std::bind(&RobotMotion::control_loop, this));
 
@@ -67,39 +70,42 @@ private:
 
     void control_loop(){
 
+        RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "id = %d", marker_id);
+
         geometry_msgs::msg::Twist vel;
 
         switch (current_state) {
 
-            //RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 500, "side %.1f", errors.side_err.data);
-
             case State::APPROACH:
                 
-                if (std::abs(side_error.data) > 1.0){
+                if (side_error.data > 1.0){
 
                     vel.linear.x = k_v * side_error.data;
                     vel.angular.z = -k_w * misalignment_error.data;
                     
                     move_robot(vel);
 
-                    RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "side_error %.1f", side_error.data);
-                }else{
+                    RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 10, "side_error %.1f", side_error.data);
+
+                }else if(std::abs(side_error.data)< 1){
                     
                     vel.linear.x = 0.0;
                     vel.angular.z = 0.0;
                     move_robot(vel);
+                    
                     RCLCPP_INFO_THROTTLE(this->get_logger(),*this->get_clock(), 1000, "robot stops");
 
-                    if(marker_id == 4){
-                        current_state = State::TREASUREFOUND;
-                    }else{
-                        current_state = State::TURN;
-                    }
+                } else{
+
+                    vel.linear.x = 0.2;
+                    vel.angular.z = 0.0;
+                    move_robot(vel);
+                    RCLCPP_INFO_THROTTLE(this->get_logger(),*this->get_clock(), 1000, "robot searching");
+
                 }
 
                 initial_yaw = atan2(2*(q.w*q.z + q.x*q.y), 1 - 2*(q.y*q.y + q.z*q.z));
 
-                RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "initial_yaw %.1f", initial_yaw);
 
                 break;
 
@@ -114,18 +120,24 @@ private:
                 vel.linear.x = 0.0;     
                 vel.angular.z = k_a * ang_error;
 
-                RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "robot is turning");
                 
                 move_robot(vel);
 
                 if( abs(ang_error) < 0.05){
                     current_state = State::APPROACH;
+                    RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "STATE: TURNING->APPROACH");
+
                 }
 
                 break;
             }
 
             case State::TREASUREFOUND:
+
+                vel.linear.x = 0.0;     
+                vel.angular.z = 0.0;
+                move_robot(vel);
+
                 RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "TREASURE FOUND!!!!!!!!");
                 break;
         }
@@ -140,16 +152,36 @@ private:
     }
 
     void move_robot(const geometry_msgs::msg::Twist vel){
-        //RCLCPP_INFO(this->get_logger(), "F");
+
         cmd_vel_pub_->publish(vel);
-        //RCLCPP_INFO(this->get_logger(), "G");
+
     }
 
     void marker_img_callback(const robot_interfaces::msg::MarkerImage::SharedPtr msg) {
-
         marker_id = msg->id;
         RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "id = %d", marker_id);
+
+        if(marker_id == 4){
+            current_state = State::TREASUREFOUND;
+        }else{
+            current_state = State::TURN;
+            RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "STATE: APPROACH->TURNING");
+        }
     }
+
+    //DELETE COMMENT FOR REAL LIFE ROBOT
+
+    // void id_callback(const std_msgs::msg::Int32::SharedPtr msg) {
+    //     marker_id = msg->data;
+    //     RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "id = %d", marker_id);
+
+    //     if(marker_id == 4){
+    //         current_state = State::TREASUREFOUND;
+    //     }else{
+    //         current_state = State::TURN;
+    //         RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "STATE: APPROACH->TURNING");
+    //     }
+    // }
 
     void odom_callback(const nav_msgs::msg::Odometry msg){
 
@@ -158,11 +190,6 @@ private:
         position[2] = msg.pose.pose.position.z;
 
         q = msg.pose.pose.orientation;
-
-        //RCLCPP_INFO(this->get_logger(), "qx%.1f", q.x);
-        //RCLCPP_INFO(this->get_logger(), "qy%.1f", q.y);
-        //RCLCPP_INFO(this->get_logger(), "qz%.1f", q.z);
-        //RCLCPP_INFO(this->get_logger(), "qw%.1f", q.w);
     }
 
     float angular_error(int id){
@@ -199,6 +226,8 @@ private:
     rclcpp::Subscription<robot_interfaces::msg::MarkerImage>::SharedPtr marker_img_sub;
     rclcpp::Subscription<robot_interfaces::msg::ErrorsMsg>::SharedPtr errors_sub;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub;
+    //rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr id_sub;
+
 
     // PARAMETERS
     double k_v;
@@ -215,7 +244,7 @@ private:
     std_msgs::msg::Float64 side_error;
     geometry_msgs::msg::Quaternion q;
     double initial_yaw;
-    int marker_id;
+    int marker_id = 0;
 };
 
 

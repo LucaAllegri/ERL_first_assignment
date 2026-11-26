@@ -39,7 +39,7 @@ def generate_launch_description():
     urdf_file_path = PathJoinSubstitution([
         pkg_erl1,  # Replace with your package name
         "urdf",
-        LaunchConfiguration('model')  # Replace with your URDF or Xacro file
+        LaunchConfiguration('model') 
     ])
 
     world_launch = IncludeLaunchDescription(

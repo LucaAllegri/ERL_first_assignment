@@ -13,9 +13,9 @@ perception_node:
 robot_motion:
   ros__parameters:
     use_sim_time: false
-    k_v: 0.0009
+    k_v: 0.002
     k_w: 0.01
-    k_a: 0.4
+    k_a: 0.3
     cmd_vel_topic: "/rosbot_3/cmd_vel"
     odom_topic: "/rosbot_3/odom"
     marker_image_topic: "/marker_image"

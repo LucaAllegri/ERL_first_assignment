@@ -13,7 +13,7 @@ perception_node:
 robot_motion:
   ros__parameters:
     use_sim_time: true
-    k_v: 0.005
+    k_v: 0.0015
     k_w: 0.001
     k_a: 0.3
     cmd_vel_topic: "/cmd_vel"
