@@ -248,3 +248,42 @@ ros2 launch erl1 spawn_assignment_real.launch.py
 ```
 
 Before running, check that the camera topics in `aruco_tracker_real.yaml` and `robot_params.yaml` match the ones of your robot (`/rosbot_N/camera/rgb/...`), and that the lines for `/id_topic` have been uncommented.
+
+# AUTHORS 
+
+<div align="center">
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/LucaAllegri">
+        <img src="https://github.com/LucaAllegri.png" width="100" style="border-radius:50%" alt="Luca Allegri"/><br>
+        <sub><b>Luca Allegri</b></sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/luktax">
+        <img src="https://github.com/luktax.png" width="100" style="border-radius:50%" alt="Luca Tassoni"/><br>
+        <sub><b>Luca Tassoni</b></sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/lucam1009">
+        <img src="https://github.com/lucam1009.png" width="100" style="border-radius:50%" alt="Luca Mantovani"/><br>
+        <sub><b>Luca Mantovani</b></sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/Gico22">
+        <img src="https://github.com/Gico22.png" width="100" style="border-radius:50%" alt="Giacomo Nogarin"/><br>
+        <sub><b>Giacomo Nogarin</b></sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/RUGGI0">
+        <img src="https://github.com/RUGGI0.png" width="100" style="border-radius:50%" alt="Nome Cognome"/><br>
+        <sub><b>Edoardo </b></sub>
+      </a>
+    </td>
+  </tr>
+</table>
+</div>
